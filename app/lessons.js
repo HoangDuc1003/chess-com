@@ -1,0 +1,200 @@
+// "Từ điển lỗi": classic traps, tactical mistakes and mating patterns.
+// Every line is replayed with chess.js at build time (build-check.mjs) to make sure it is legal
+// and ends the way the text says.
+// notes: caption keyed by ply index (0-based) inside `moves`.
+// mild: the lesson shows a small positional cost, not a decisive blunder.
+
+export const LESSON_CATS = [
+  { id: 'trap', vn: 'Bẫy khai cuộc' },
+  { id: 'tactic', vn: 'Lỗi chiến thuật' },
+  { id: 'mate', vn: 'Mẫu chiếu hết' },
+  { id: 'endgame', vn: 'Tàn cuộc' },
+];
+
+export const LESSONS = [
+  {
+    id: 'fools-mate', cat: 'trap', title: 'Chiếu hết Kẻ Ngốc', loser: 'w', tags: ['king-safety', 'early-mate'],
+    moves: 'f3 e5 g4 Qh4#',
+    summary: 'Ván cờ ngắn nhất có thể: Trắng đẩy hai tốt f và g, mở toang đường chéo e1-h4 trước Vua.',
+    avoid: 'Đầu ván đừng đẩy tốt f và g. Hai tốt này che chắn cho Vua.',
+    notes: { 0: 'Nước yếu: mở đường chéo tới Vua.', 2: 'Sai lầm nghiêm trọng: đường chéo e1-h4 trống hoàn toàn.', 3: 'Hậu chiếu hết. Không quân nào chặn được.' },
+  },
+  {
+    id: 'scholars-mate', cat: 'trap', title: 'Chiếu hết Học Giả', loser: 'b', tags: ['f7', 'early-mate', 'queen-early'],
+    moves: 'e4 e5 Bc4 Nc6 Qh5 Nf6 Qxf7#',
+    summary: 'Hậu và Tượng cùng đánh vào f7, ô chỉ có Vua bảo vệ. Rất hay gặp ở trình độ dưới 800.',
+    avoid: 'Khi Hậu Trắng ra h5, hãy chặn bằng 3...g6 (hoặc 3...Qe7) để bảo vệ f7, rồi đuổi Hậu bằng ...Nf6.',
+    notes: { 2: 'Tượng nhắm f7.', 4: 'Hậu cũng nhắm f7 và đe dọa e5.', 5: 'Sai lầm: Mã tấn công Hậu nhưng quên f7.', 6: 'Chiếu hết: Hậu được Tượng bảo vệ.' },
+  },
+  {
+    id: 'legal-mate', cat: 'trap', title: 'Chiếu hết Légal', loser: 'b', tags: ['pin', 'f7', 'early-mate'],
+    moves: 'e4 e5 Nf3 d6 Bc4 Bg4 Nc3 g6 Nxe5 Bxd1 Bxf7+ Ke7 Nd5#',
+    summary: 'Mã f3 bị ghim vào Hậu, nhưng đó chỉ là ghim tương đối. Trắng bỏ Hậu để chiếu hết bằng ba quân nhẹ.',
+    avoid: 'Trước khi ăn quân to, hãy hỏi: đối phương được gì? Ở đây 5...dxe5 là đủ; tham ăn Hậu thì bị chiếu hết.',
+    notes: { 5: 'Tượng ghim Mã f3 vào Hậu.', 7: 'Nước yếu, không phát triển quân.', 8: 'Thí Hậu! Mã phá vỡ ghim.', 9: 'Sai lầm nghiêm trọng: ăn Hậu.', 10: 'Chiếu, Vua buộc phải lên e7.', 12: 'Chiếu hết bằng hai Mã và Tượng.' },
+  },
+  {
+    id: 'petrov-trap', cat: 'trap', title: 'Bẫy Petrov: chiếu mở mất Hậu', loser: 'b', tags: ['discovered', 'queen-lost'],
+    moves: 'e4 e5 Nf3 Nf6 Nxe5 Nxe4 Qe2 Nf6 Nc6+',
+    summary: 'Đen bắt chước Trắng (ăn lại e4) quá sớm. Hậu e2 đứng sau Mã trên cột e, Mã nhảy đi là chiếu mở và đồng thời tấn công Hậu d8.',
+    avoid: 'Trong Phòng thủ Petrov, sau 3.Nxe5 hãy đi 3...d6 đuổi Mã trước, rồi mới ...Nxe4.',
+    notes: { 5: 'Nước sai thứ tự: phải đi ...d6 trước.', 6: 'Hậu ghim Mã e4 và đe dọa.', 7: 'Sai lầm nghiêm trọng: mở cột e.', 8: 'Chiếu mở! Mã c6 đồng thời tấn công Hậu d8.' },
+  },
+  {
+    id: 'stafford-trap', cat: 'trap', title: 'Bẫy Stafford: “Ồ không, Hậu của tôi!”', loser: 'w', tags: ['f7', 'early-mate', 'queen-lost'],
+    moves: 'e4 e5 Nf3 Nf6 Nxe5 Nc6 Nxc6 dxc6 d3 Bc5 Bg5 Nxe4 Bxd8 Bxf2+ Ke2 Bg4#',
+    summary: 'Trắng ghim Mã f6 vào Hậu, tưởng thắng Hậu. Nhưng Đen bỏ Hậu và chiếu hết Vua Trắng đang đứng giữa bàn.',
+    avoid: 'Sau 5...Bc5 hãy đi 6.Be2 để che Vua. Luôn kiểm tra ô f2 khi Tượng Đen đứng c5.',
+    notes: { 5: 'Gambit: Đen thí tốt để phát triển nhanh.', 9: 'Tượng nhắm f2.', 10: 'Sai lầm nghiêm trọng: Trắng tưởng ghim được Mã.', 11: 'Đen bỏ Hậu!', 12: 'Trắng ăn Hậu…', 13: 'Chiếu, Vua buộc phải lên e2.', 15: 'Chiếu hết.' },
+  },
+  {
+    id: 'blackburne-shilling', cat: 'trap', title: 'Bẫy Blackburne Shilling', loser: 'w', tags: ['greed', 'early-mate'],
+    moves: 'e4 e5 Nf3 Nc6 Bc4 Nd4 Nxe5 Qg5 Nxf7 Qxg2 Rf1 Qxe4+ Be2 Nf3#',
+    summary: 'Đen đặt Mã vào d4 như mồi. Trắng tham ăn tốt e5 rồi f7 và bị Hậu Đen tràn vào chiếu hết.',
+    avoid: 'Sau 3...Nd4, chỉ cần 4.Nxd4 hoặc 4.O-O là Trắng tốt hơn. Đừng tham ăn tốt khi Vua chưa an toàn.',
+    notes: { 5: 'Nước bẫy: bỏ tốt e5.', 6: 'Tham ăn tốt.', 7: 'Hậu tấn công Mã e5 và tốt g2.', 8: 'Tham ăn tiếp, đe dọa bắt Xe h8.', 9: 'Hậu ăn g2, đe dọa Xe h1.', 11: 'Chiếu.', 13: 'Chiếu hết ngột ngạt: Vua bị chính quân mình vây.' },
+  },
+  {
+    id: 'fishing-pole', cat: 'trap', title: 'Bẫy Cần câu', loser: 'w', tags: ['greed', 'king-safety', 'early-mate'],
+    moves: 'e4 e5 Nf3 Nc6 Bb5 Nf6 O-O Ng4 h3 h5 hxg4 hxg4 Ne1 Qh4 f3 g3 d4 Qh2#',
+    summary: 'Đen đưa Mã lên g4 làm mồi. Trắng ăn Mã thì cột h mở ra cho Xe h8 và Hậu Đen tấn công Vua.',
+    avoid: 'Khi Mã Đen lên g4, đừng vội đẩy h3 và ăn. Chơi 5.d3 hoặc 5.c3 là đủ tốt.',
+    notes: { 7: 'Mồi câu: Mã lên g4.', 8: 'Đuổi Mã.', 9: 'Đen không lui mà thí Mã.', 10: 'Trắng cắn câu.', 11: 'Cột h mở cho Xe h8.', 13: 'Hậu tham gia tấn công.', 15: 'Tốt g3 khóa đường thoát của Vua.', 17: 'Chiếu hết ở h2.' },
+  },
+  {
+    id: 'noahs-ark', cat: 'trap', title: 'Bẫy Thuyền Noah', loser: 'w', tags: ['trapped-piece', 'greed'],
+    moves: 'e4 e5 Nf3 Nc6 Bb5 a6 Ba4 d6 d4 b5 Bb3 Nxd4 Nxd4 exd4 Qxd4 c5 Qd5 Be6 Qc6+ Bd7 Qd5 c4',
+    summary: 'Các tốt a6, b5, c4 của Đen tạo thành “con thuyền” nhốt Tượng b3 của Trắng. Tượng không còn đường thoát.',
+    avoid: 'Trong Tây Ban Nha, khi Đen đẩy ...b5, hãy để ý đường lui của Tượng. Ở đây đừng ăn lại bằng Hậu (8.Qxd4?).',
+    notes: { 14: 'Sai lầm: Hậu ăn tốt, để Đen đuổi bằng ...c5.', 15: 'Tấn công Hậu, chuẩn bị ...c4.', 21: 'Tượng b3 bị nhốt hoàn toàn.' },
+  },
+  {
+    id: 'elephant-trap', cat: 'trap', title: 'Bẫy Voi (Gambit Hậu)', loser: 'w', tags: ['pin', 'greed'],
+    moves: 'd4 d5 c4 e6 Nc3 Nf6 Bg5 Nbd7 cxd5 exd5 Nxd5 Nxd5 Bxd8 Bb4+ Qd2 Bxd2+ Kxd2 Kxd8',
+    summary: 'Trắng tưởng Mã f6 bị ghim nên ăn tốt d5. Nhưng ghim chỉ là tương đối: Đen bỏ Hậu, chiếu bằng Tượng và thắng lại nhiều hơn.',
+    avoid: 'Trước khi ăn quân “bị ghim”, kiểm tra xem đối phương có nước chiếu hay đòn trung gian nào không.',
+    notes: { 7: 'Nước bẫy: Mã d7 bảo vệ gián tiếp.', 10: 'Sai lầm: ăn tốt vì tưởng Mã f6 bị ghim.', 11: 'Đen bỏ Hậu!', 13: 'Chiếu! Trắng phải chặn bằng Hậu.', 17: 'Kết quả: Đen hơn một quân nhẹ.' },
+  },
+  {
+    id: 'lasker-trap', cat: 'trap', title: 'Bẫy Lasker (Gambit Albin)', loser: 'w', tags: ['greed', 'promotion'],
+    moves: 'd4 d5 c4 e5 dxe5 d4 e3 Bb4+ Bd2 dxe3 Bxb4 exf2+ Ke2 fxg1=N+ Rxg1 Bg4+',
+    summary: 'Một chuỗi đòn hiếm: tốt Đen tiến thẳng tới hàng cuối và phong Mã có chiếu, rồi Tượng chiếu ăn Hậu Trắng.',
+    avoid: 'Sau 5...dxe3, đừng ăn Tượng b4. Đi 6.fxe3 là an toàn.',
+    notes: { 6: 'Nước yếu, mở đường cho tốt d4.', 10: 'Sai lầm nghiêm trọng: ăn Tượng.', 11: 'Chiếu, tốt tiến tới f2.', 13: 'Phong cấp thành Mã có chiếu!', 15: 'Chiếu, và Hậu d1 sẽ bị ăn.' },
+  },
+  {
+    id: 'siberian-trap', cat: 'trap', title: 'Bẫy Siberia (Smith-Morra)', loser: 'w', tags: ['early-mate', 'king-safety'],
+    moves: 'e4 c5 d4 cxd4 c3 dxc3 Nxc3 Nc6 Nf3 e6 Bc4 Qc7 O-O Nf6 Qe2 Ng4 h3 Nd4 Nxd4 Qh2#',
+    summary: 'Hậu Đen và Mã g4 cùng nhắm ô h2. Khi Trắng đuổi Mã bằng h3, Mã khác nhảy vào d4 đánh bật quân bảo vệ.',
+    avoid: 'Khi thấy Hậu và Mã đối phương cùng nhắm một ô cạnh Vua, hãy phòng thủ ô đó trước.',
+    notes: { 15: 'Mã g4 và Hậu c7 cùng nhắm h2.', 16: 'Sai lầm: đuổi Mã mà không thấy đòn.', 17: 'Mã tấn công Hậu e2 và giải phóng h2.', 19: 'Chiếu hết.' },
+  },
+  {
+    id: 'kieninger-trap', cat: 'trap', title: 'Bẫy Kieninger (Gambit Budapest)', loser: 'w', tags: ['pin', 'early-mate'],
+    moves: 'd4 Nf6 c4 e5 dxe5 Ng4 Nf3 Nc6 Bf4 Bb4+ Nbd2 Qe7 a3 Ngxe5 axb4 Nd3#',
+    summary: 'Mã d2 đang bị ghim, Vua Trắng chưa nhập thành. Trắng ăn Tượng b4 thì Mã Đen nhảy vào d3 chiếu hết ngột ngạt.',
+    avoid: 'Khi Vua còn ở e1 và quân bị ghim, đừng tham ăn. Ở đây 8.Nxe5 là đúng.',
+    notes: { 9: 'Chiếu, ghim Mã d2.', 13: 'Đen bỏ Tượng làm mồi.', 14: 'Sai lầm nghiêm trọng.', 15: 'Chiếu hết: Vua bị quân mình vây kín.' },
+  },
+  {
+    id: 'englund-trap', cat: 'trap', title: 'Bẫy Englund', loser: 'w', tags: ['greed', 'early-mate'],
+    moves: 'd4 e5 dxe5 Nc6 Nf3 Qe7 Bf4 Qb4+ Bd2 Qxb2 Bc3 Bb4 Qd2 Bxc3 Qxc3 Qc1#',
+    summary: 'Hậu Đen ăn tốt b2 rồi tràn vào hàng cuối. Trắng tưởng bẫy được Hậu nhưng lại bị chiếu hết.',
+    avoid: 'Khi Hậu đối phương vào sâu, kiểm tra các ô chiếu trên hàng cuối (c1, d1).',
+    notes: { 7: 'Chiếu đôi mục tiêu: Vua và tốt b2.', 9: 'Hậu ăn tốt b2, đe dọa Xe a1.', 10: 'Tưởng bẫy được Hậu.', 11: 'Ghim Bc3 và tấn công.', 15: 'Chiếu hết trên hàng cuối.' },
+  },
+  {
+    id: 'fried-liver', mild: true, cat: 'trap', title: 'Tấn công Gan Rán', loser: 'b', tags: ['f7', 'king-safety'],
+    moves: 'e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 d5 exd5 Nxd5 Nxf7 Kxf7 Qf3+ Ke6 Nc3',
+    summary: 'Đen ăn lại tốt d5 bằng Mã, Trắng thí Mã ở f7 để kéo Vua Đen ra giữa bàn và tấn công dồn dập.',
+    avoid: 'Sau 5.exd5, Đen nên đi 5...Na5 (hoặc 5...b5, 5...Nd4) chứ đừng ăn lại bằng Mã.',
+    notes: { 6: 'Mã nhắm f7.', 9: 'Nước sai: ăn lại bằng Mã.', 10: 'Thí Mã ở f7!', 12: 'Chiếu, đồng thời tấn công Mã d5.', 13: 'Vua phải bảo vệ Mã và bị kéo ra giữa bàn.', 14: 'Thêm quân tấn công Mã bị ghim. Vua Đen rất nguy hiểm.' },
+  },
+  {
+    id: 'hanging-piece', cat: 'tactic', title: 'Quân treo: để quân không được bảo vệ', loser: 'w', tags: ['hanging'],
+    moves: 'e4 e5 Nf3 Nc6 Bc4 d6 Ng5 Qxg5',
+    summary: 'Lỗi phổ biến nhất ở mọi trình độ dưới 1200: đưa quân tới ô mà đối phương ăn được miễn phí.',
+    avoid: 'Trước mỗi nước, hỏi: ô mình đến có bị quân nào tấn công không? Có được bảo vệ không? Đếm số quân tấn công và bảo vệ.',
+    notes: { 6: 'Sai lầm: Mã nhắm f7 nhưng ô g5 bị Hậu d8 kiểm soát.', 7: 'Hậu ăn Mã miễn phí.' },
+  },
+  {
+    id: 'knight-fork', cat: 'tactic', title: 'Đòn chĩa của Mã', loser: 'b', tags: ['fork'],
+    fen: 'r3k2r/ppp2ppp/2n5/1N1q4/3P4/8/PPP2PPP/R2QKB1R w KQkq - 0 1',
+    moves: 'Nc7+ Kd7 Nxd5',
+    summary: 'Mã tấn công nhiều quân cùng lúc. Nguy hiểm nhất là chiếu Vua và đồng thời tấn công Hậu hoặc Xe.',
+    avoid: 'Để ý các ô Mã đối phương nhảy tới được. Đừng xếp Vua, Hậu, Xe cách nhau đúng một bước Mã.',
+    notes: { 0: 'Chiếu, đồng thời tấn công Hậu d5 và Xe a8.', 2: 'Ăn Hậu miễn phí.' },
+  },
+  {
+    id: 'pawn-fork', mild: true, cat: 'tactic', title: 'Đòn chĩa của tốt', loser: 'w', tags: ['fork'],
+    moves: 'e4 e5 Nf3 Nc6 Bc4 Nf6 Nc3 Nxe4 Nxe4 d5',
+    summary: 'Tốt cũng chĩa được hai quân. Ở đây Đen thí Mã rồi dùng tốt d5 tấn công cả Tượng lẫn Mã, lấy lại quân.',
+    avoid: 'Khi ăn quân, kiểm tra xem tốt đối phương có thể tiến lên tấn công hai quân của bạn cùng lúc không.',
+    notes: { 7: 'Thí Mã tạm thời.', 9: 'Tốt chĩa Tượng c4 và Mã e4, Đen lấy lại quân.' },
+  },
+  {
+    id: 'absolute-pin', cat: 'tactic', title: 'Đòn ghim tuyệt đối', loser: 'b', tags: ['pin'],
+    fen: '4k3/8/8/4n3/8/8/5P2/4R1K1 w - - 0 1',
+    moves: 'f4 Kd7 fxe5',
+    summary: 'Quân bị ghim vào Vua không được phép di chuyển. Bên tấn công có thể dồn thêm quân rẻ hơn để ăn nó.',
+    avoid: 'Đừng để quân của bạn đứng giữa Vua và Xe, Hậu, Tượng đối phương. Nếu bị ghim, hãy bảo vệ hoặc gỡ ghim sớm.',
+    notes: { 0: 'Mã bị Xe ghim vào Vua, không thể chạy. Tốt tấn công nó.', 2: 'Ăn Mã.' },
+  },
+  {
+    id: 'skewer', cat: 'tactic', title: 'Đòn xiên', loser: 'b', tags: ['skewer'],
+    fen: '3q4/8/8/3k4/8/8/8/R5K1 w - - 0 1',
+    moves: 'Rd1+ Kc6 Rxd8',
+    summary: 'Ngược với đòn ghim: quân giá trị hơn đứng trước. Nó buộc phải chạy, để lộ quân phía sau.',
+    avoid: 'Đừng xếp Vua và Hậu (hoặc Xe) trên cùng một hàng, cột, đường chéo mà đối phương có thể chiếu.',
+    notes: { 0: 'Chiếu dọc cột d. Vua phải tránh.', 2: 'Ăn Hậu ở phía sau.' },
+  },
+  {
+    id: 'queen-early', mild: true, cat: 'tactic', title: 'Đưa Hậu ra quá sớm', loser: 'w', tags: ['queen-early'],
+    moves: 'e4 e5 d4 exd4 Qxd4 Nc6 Qe3 Nf6 Nc3 Bb4 Bd2 O-O',
+    summary: 'Hậu ra sớm trở thành mục tiêu: đối phương vừa phát triển quân vừa đuổi Hậu, giành thêm nhịp.',
+    avoid: 'Phát triển Mã và Tượng trước, nhập thành, rồi mới đưa Hậu vào cuộc.',
+    notes: { 4: 'Hậu ra giữa bàn quá sớm.', 5: 'Phát triển kèm tấn công Hậu: Đen được nhịp.', 11: 'Đen đã nhập thành và phát triển nhanh hơn Trắng.' },
+  },
+  {
+    id: 'back-rank', cat: 'mate', title: 'Chiếu hết hàng cuối', loser: 'b', tags: ['backrank'],
+    fen: '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1',
+    moves: 'Rd8#',
+    summary: 'Vua bị chính các tốt của mình chặn đường thoát, Xe hoặc Hậu đối phương chiếu trên hàng cuối.',
+    avoid: 'Tạo “lỗ thở” cho Vua bằng cách đẩy một tốt (h6 hoặc g6) khi rảnh tay, hoặc giữ một quân canh hàng cuối.',
+    notes: { 0: 'Chiếu hết: Vua không thoát được vì bị tốt f7, g7, h7 chặn.' },
+  },
+  {
+    id: 'smothered-mate', cat: 'mate', title: 'Chiếu hết ngột ngạt', loser: 'b', tags: ['smothered'],
+    moves: 'e4 c6 d4 d5 Nc3 dxe4 Nxe4 Nd7 Qe2 Ngf6 Nd6#',
+    summary: 'Vua bị chính quân mình vây kín, chỉ một con Mã là đủ chiếu hết. Cái bẫy này có thật trong Caro-Kann.',
+    avoid: 'Để ý khi Hậu đối phương đứng trên cột e trước Vua bạn: tốt e7 bị ghim, ô d6 không còn được bảo vệ.',
+    notes: { 8: 'Hậu lên cột e, ghim tốt e7.', 9: 'Sai lầm nghiêm trọng: chặn ô f6.', 10: 'Chiếu hết: tốt e7 bị ghim nên không ăn được Mã.' },
+  },
+  {
+    id: 'ladder-mate', cat: 'mate', title: 'Chiếu hết bằng hai Xe (bậc thang)', loser: 'b', tags: ['technique'],
+    fen: '4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1',
+    moves: 'Ra7 Kf8 Rh8#',
+    summary: 'Hai Xe thay nhau khóa từng hàng, đẩy Vua đối phương ra mép bàn rồi chiếu hết.',
+    avoid: 'Kỹ thuật cơ bản phải thuộc: một Xe chặn một hàng, Xe kia chiếu ở hàng bên ngoài.',
+    notes: { 0: 'Xe a7 khóa hàng 7.', 2: 'Xe h8 chiếu trên hàng 8. Hết đường thoát.' },
+  },
+  {
+    id: 'queen-mate', cat: 'endgame', title: 'Hậu và Vua chiếu hết', loser: 'b', tags: ['technique'],
+    fen: '7k/8/5K2/8/8/8/8/6Q1 w - - 0 1',
+    moves: 'Qg7#',
+    summary: 'Hậu đứng sát Vua đối phương, được Vua mình bảo vệ. Mẫu chiếu hết cơ bản nhất.',
+    avoid: 'Đưa Vua mình lại gần trước, sau đó Hậu chiếu ở ô được Vua bảo vệ.',
+    notes: { 0: 'Chiếu hết: Hậu được Vua f6 bảo vệ.' },
+  },
+  {
+    id: 'stalemate', cat: 'endgame', title: 'Hòa pat khi đang thắng', loser: 'w', tags: ['stalemate'],
+    fen: '7k/8/5K2/8/8/8/8/6Q1 w - - 0 1',
+    moves: 'Qg6',
+    summary: 'Hơn cả Hậu mà vẫn hòa: Vua đối phương không bị chiếu nhưng không còn nước đi hợp lệ nào.',
+    avoid: 'Khi đối phương chỉ còn Vua, trước mỗi nước hãy kiểm tra: Vua đó còn ô nào để đi không?',
+    notes: { 0: 'Sai lầm: Vua h8 không bị chiếu nhưng hết nước đi. Hòa pat!' },
+  },
+];
+
+export function lessonsByTag(tag) { return LESSONS.filter((l) => l.tags.includes(tag)); }
+export function lessonById(id) { return LESSONS.find((l) => l.id === id) || null; }
