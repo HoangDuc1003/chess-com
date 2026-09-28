@@ -44,12 +44,15 @@ async function* sse(res) {
 async function failure(res, provider, model) {
   let msg = '';
   try { const j = await res.json(); msg = (j.error && (j.error.message || j.error.status)) || ''; } catch {}
-  const s = res.status;
+  return errorFor(res.status, msg, provider, model);
+}
+function errorFor(s, msg, provider, model) {
   if (s === 400 && /api key|API_KEY/i.test(msg)) return new ChatError('API key không hợp lệ. Kiểm tra lại key trong phần cài đặt.', { status: s });
   if (s === 401 || s === 403) return new ChatError('API key không hợp lệ hoặc chưa được cấp quyền.', { status: s });
+  if (s === 404 && provider === 'nvidia' && !msg) return new ChatError('Trang chưa có hàm /api/nvidia (Vercel chưa triển khai bản mới?).', { status: s });
   if (s === 404) return new ChatError(`Không tìm thấy model "${model}". Sửa tên model trong phần cài đặt.`, { status: s });
   if (s === 429) return new ChatError('Hết lượt dùng hoặc hỏi quá nhanh. Đợi một chút rồi hỏi lại.', { status: s });
-  if (s === 529 || s === 503 || s === 500) return new ChatError(`${PROVIDERS[provider].short} đang quá tải, thử lại sau.`, { status: s });
+  if (s === 529 || s === 503 || (s === 500 && !msg)) return new ChatError(`${PROVIDERS[provider].short} đang quá tải, thử lại sau.`, { status: s });
   return new ChatError(`Lỗi ${s}${msg ? ': ' + msg : ''}`, { status: s });
 }
 
@@ -122,12 +125,12 @@ async function* streamOnce({ provider, key, model, system, messages, signal }) {
     } else throw new ChatError('Chưa chọn AI.');
   } catch (e) {
     if (e.name === 'AbortError' || e instanceof ChatError) throw e;
-    throw new ChatError('Không kết nối được tới máy chủ AI (mất mạng?).', { network: true });
+    throw new ChatError(`Không kết nối được tới máy chủ AI (${e && e.message ? e.message : 'mất mạng?'}).`, { network: true });
   }
   if (!res.ok) throw await failure(res, provider, model);
   for await (const ev of sse(res)) {
     if (provider === 'nvidia') {
-      if (ev.error) throw new ChatError(ev.error.message || 'Lỗi từ NVIDIA');
+      if (ev.error) throw errorFor(ev.error.status || 0, ev.error.message || 'Lỗi từ NVIDIA', provider, model);
       const d = ev.choices && ev.choices[0] && ev.choices[0].delta;
       if (d && d.content) yield d.content;
     } else if (provider === 'gemini') {
