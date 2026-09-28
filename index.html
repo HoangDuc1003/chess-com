@@ -25,11 +25,37 @@
 </head>
 <body>
 <!--BODY-->
+<nav class="nav" id="nav" aria-label="Menu chính">
+  <div class="nav-head">
+    <a class="nav-brand" href="./" aria-label="Đấu Stockfish, về trang chơi"><span class="mark"><i class="wn"></i></span><b>Đấu Stockfish</b></a>
+    <button class="nav-x" type="button" data-nav="close" aria-label="Đóng menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="nav-list">
+    <button class="nav-i" type="button" data-go="play" title="Chơi với máy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2a2.9 2.9 0 0 0-1.9 5.1C8.9 9 8.2 10 8.2 11.3h7.6c0-1.3-.7-2.3-1.9-3A2.9 2.9 0 0 0 12 3.2z"/><path d="M9.6 11.3c0 2.9-1.3 5-2.9 6.6h10.6c-1.6-1.6-2.9-3.7-2.9-6.6"/><path d="M5.5 20.8h13"/></svg><span class="l">Chơi với máy</span><span class="s">Chơi</span></button>
+    <button class="nav-i" type="button" data-go="puzz" title="Giải đố"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3h4v2.5a1.5 1.5 0 1 0 3 0V3h4v7h-2.5a1.5 1.5 0 1 0 0 3H21v8h-7v-2.5a1.5 1.5 0 1 0-3 0V21H3v-8h2.5a1.5 1.5 0 1 0 0-3H3V3h7z"/></svg><span class="l">Giải đố</span><span class="s">Giải đố</span></button>
+    <button class="nav-i" type="button" data-go="open" title="Khai cuộc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5c3-1.6 6.2-1.6 9 .6 2.8-2.2 6-2.2 9-.6v13c-3-1.6-6.2-1.6-9 .6-2.8-2.2-6-2.2-9-.6z"/><path d="M12 6v13"/></svg><span class="l">Khai cuộc</span><span class="s">Khai cuộc</span></button>
+    <button class="nav-i" type="button" data-go="dict" title="Từ điển lỗi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M6 10.5V16c2 2 10 2 12 0v-5.5"/></svg><span class="l">Từ điển lỗi</span><span class="s">Từ điển</span></button>
+    <button class="nav-i" type="button" data-go="bots" title="Đối thủ &amp; cài đặt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16.5h5"/></svg><span class="l">Đối thủ &amp; cài đặt</span><span class="s">Đối thủ</span></button>
+    <hr>
+    <button class="nav-i" type="button" data-nav="newgame" title="Ván mới"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span class="l">Ván mới</span><span class="s">Ván mới</span></button>
+    <button class="nav-i" type="button" data-nav="stats" title="Thống kê"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-8M11 20V5M17 20v-5M3 20h18"/></svg><span class="l">Thống kê</span><span class="s">Thống kê</span></button>
+    <button class="nav-i" type="button" data-nav="help" title="Hướng dẫn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .8-1 1.5v.5M12 17h.01"/></svg><span class="l">Hướng dẫn</span><span class="s">Hướng dẫn</span></button>
+    <button class="nav-i" type="button" data-nav="sound" title="Âm thanh: bật"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5v5h3.5l4.5 3.8V5.7L7.5 9.5z"/><path class="wave" d="M15.5 9a4.2 4.2 0 0 1 0 6M18.2 6.4a8 8 0 0 1 0 11.2"/><path class="slash" d="M16 9.5l5 5M21 9.5l-5 5"/></svg><span class="l">Âm thanh: bật</span><span class="s">Âm thanh</span></button>
+    <button class="nav-i" type="button" data-nav="install" title="Cài ứng dụng" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 20h14"/></svg><span class="l">Cài ứng dụng</span><span class="s">Cài app</span></button>
+  </div>
+  <div class="nav-foot">
+    <a class="nav-i" href="https://github.com/HoangDuc1003/chess-com" target="_blank" rel="noopener" title="Mã nguồn trên GitHub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 4l-3 16"/></svg><span class="l">Mã nguồn</span><span class="s">Mã nguồn</span></a>
+    <button class="nav-i" type="button" data-nav="collapse" aria-label="Thu gọn menu" title="Thu gọn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 7l-5 5 5 5M18 7l-5 5 5 5"/></svg><span class="l">Thu gọn</span><span class="s">Mở rộng</span></button>
+  </div>
+</nav>
+<div class="scrim" id="scrim" hidden></div>
 <div class="app">
   <header class="top">
+    <button class="burger" type="button" id="btnMenu" aria-label="Mở menu" aria-controls="nav" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     <div class="brand"><span class="mark"><i class="wn"></i></span><b>Đấu Stockfish</b><span>Chơi với máy, học trong lúc chơi</span></div>
+    <div class="ptitle"><h1 id="pageTitle">Chơi với máy</h1><span id="pageSub"></span></div>
     <div class="top-r">
-      <button class="install" type="button" id="btnInstall" hidden>Cài ứng dụng</button>
+      <button class="install" type="button" id="btnInstall" data-install hidden>Cài ứng dụng</button>
       <div class="pill" id="enginePill" data-s="loading"><i></i><span id="engineText">Đang tải Stockfish…</span></div>
     </div>
   </header>
@@ -97,6 +123,7 @@
   <button type="button" role="menuitem" data-cmd="first"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6l-6 6 6 6M7 6v12"/></svg>Về đầu ván</button>
   <button type="button" role="menuitem" data-cmd="last"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l6 6-6 6M17 6v12"/></svg>Về nước hiện tại</button>
 </div>
+<dialog class="sheet" id="sheet" aria-labelledby="sheetTitle"></dialog>
 <!--/BODY-->
 <script type="module" src="app/main.js"></script>
 </body>

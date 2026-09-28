@@ -53,6 +53,7 @@ const S = {
   openCardClosed: null, lastOpenFam: null, libCat: 'e4e5',
   postReview: false,
   evalWhite: 20,
+  games: [], gameId: 0, gameBot: null, navMini: false,
 };
 const cache = new Map();
 const need = [];
@@ -89,6 +90,7 @@ function snapshot() {
     review: S.review, hintsUsed: S.hintsUsed, tab: S.tab,
     pzRating: S.pzRating, pzGames: S.pzGames, pzSolved: S.pzSolved, pzStreak: S.pzStreak, pzBest: S.pzBest,
     pzChip: S.pzChip, pzLevel: S.pzLevel, pzSeen: S.pzSeen.slice(-400), pzHist: S.pzHist.slice(-30),
+    games: S.games.slice(-100), gameId: S.gameId, gameBot: S.gameBot, navMini: S.navMini,
   };
 }
 function save() { try { localStorage.setItem(STORE, JSON.stringify(snapshot())); } catch {} }
@@ -112,6 +114,10 @@ function restore(d) {
   pick('pzLevel', (v) => ['easy', 'normal', 'hard'].includes(v));
   pick('pzSeen', (v) => Array.isArray(v) && v.every((x) => typeof x === 'string'));
   pick('pzHist', (v) => Array.isArray(v) && v.every((x) => x && typeof x === 'object'));
+  pick('games', (v) => Array.isArray(v) && v.every((x) => x && typeof x === 'object' && ['w', 'd', 'l'].includes(x.r)));
+  pick('gameId', (v) => Number.isFinite(v) && v >= 0);
+  pick('gameBot', (v) => v && typeof v === 'object' && typeof v.name === 'string');
+  pick('navMini', (v) => typeof v === 'boolean');
   if (Array.isArray(d.moves)) {
     for (const u of d.moves) {
       try { pushMove(u); } catch { break; }
@@ -426,6 +432,8 @@ function newGame() {
   S.orientation = S.userColor;
   S.hintsUsed = 0; S.hintOn = false;
   S.view = null; S.showBest = null; S.coachPly = null; S.botCoachPly = null;
+  S.gameId = Date.now();
+  S.gameBot = botStamp(bot());
   board.setOrientation(S.orientation);
   board.clearAnnotations();
   S.tab = 'play';
@@ -985,7 +993,8 @@ function openLesson(id) {
 function renderBots() {
   const b = bot();
   const f = MODES[S.mode];
-  const botBtn = (x) => `<button type="button" data-act="bot" data-id="${x.id}" aria-pressed="${S.botId === x.id}" title="${esc(x.name)}"><span class="ava" style="background:${x.tone}"><i class="${x.icon}"></i></span><small>${eloText(x)}</small></button>`;
+  const won = new Set(S.games.filter((g) => g.r === 'w').map((g) => g.b));
+  const botBtn = (x) => `<button type="button" data-act="bot" data-id="${x.id}" aria-pressed="${S.botId === x.id}" title="${esc(x.name)}${won.has(x.id) ? ' · đã thắng' : ''}"><span class="ava" style="background:${x.tone}"><i class="${x.icon}"></i></span><small>${eloText(x)}</small>${won.has(x.id) ? '<em class="won" aria-hidden="true">✓</em>' : ''}</button>`;
   const custom = { id: 'custom', name: 'Tùy chỉnh', tone: '#6b6f7a', icon: 'wr' };
   $('#paneBots').innerHTML = `
     <div class="botsel"><span class="ava" style="background:${b.tone}"><i class="${b.icon}"></i></span><div><b>${esc(b.name)}</b> <span class="rt">${eloText(b)}</span><p>${esc(b.blurb)}</p></div></div>
@@ -1098,7 +1107,7 @@ function pzRate(solved) {
   pz.delta = S.pzRating - before;
   S.pzGames++;
   if (solved) { S.pzSolved++; S.pzStreak++; S.pzBest = Math.max(S.pzBest, S.pzStreak); } else S.pzStreak = 0;
-  S.pzHist.push({ id: pz.p.id, rating: pz.p.rating, ok: solved });
+  S.pzHist.push({ id: pz.p.id, rating: pz.p.rating, ok: solved, r: S.pzRating });
   if (S.pzHist.length > 30) S.pzHist = S.pzHist.slice(-30);
 }
 function pzMove(mv) {
@@ -1268,6 +1277,8 @@ function renderTabs() {
   document.querySelectorAll('.side-body .pane').forEach((p) => { p.hidden = p.dataset.panel !== S.tab; });
 }
 function renderAll() {
+  recordGame();
+  renderNav();
   renderBars();
   renderEval();
   renderStrip();
@@ -1286,11 +1297,7 @@ function renderAll() {
 /* ================= events ================= */
 $('#tabs').addEventListener('click', (e) => {
   const b = e.target.closest('[data-tab]');
-  if (!b) return;
-  if (S.pz && b.dataset.tab === 'play') { exitPuzzle(); return; }
-  S.tab = b.dataset.tab;
-  if (S.tab === 'dict') renderDict();
-  renderAll();
+  if (b) goTab(b.dataset.tab);
 });
 $('#ostrip').addEventListener('click', () => { S.tab = 'open'; renderAll(); });
 $('#ostrip').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); S.tab = 'open'; renderAll(); } });
@@ -1360,7 +1367,7 @@ $('#sideBody').addEventListener('input', (e) => {
   if (e.target.id === 'customElo') { S.customElo = +e.target.value; const l = e.target.previousElementSibling; if (l) l.querySelector('small').textContent = S.customElo; renderBars(); save(); }
 });
 $('#sideBody').addEventListener('change', (e) => {
-  if (e.target.id === 'optSound') { S.sound = e.target.checked; setSound(S.sound); save(); }
+  if (e.target.id === 'optSound') { S.sound = e.target.checked; setSound(S.sound); renderNav(); save(); }
   if (e.target.id === 'optHaptics') { S.haptics = e.target.checked; buzz(20); save(); }
   if (e.target.id === 'optEval') { S.evalBarPref = e.target.checked; renderEval(); save(); }
   if (e.target.id === 'optPause') { S.pausePref = e.target.checked; if (!S.pausePref && S.paused) { S.paused = false; schedule(); } save(); }
@@ -1435,20 +1442,26 @@ function setupPwa() {
   if (!('serviceWorker' in navigator) || !(location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) return;
   swOn = true;
   navigator.serviceWorker.register('sw.js').then(() => { if (eng.ready) warmOffline(); }).catch(() => { swOn = false; });
-  let deferred = null;
-  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferred = e; btn.hidden = false; });
-  btn.addEventListener('click', async () => {
-    if (!deferred) return;
-    deferred.prompt();
-    try { await deferred.userChoice; } catch {}
-    deferred = null;
-    btn.hidden = true;
-  });
-  window.addEventListener('appinstalled', () => { btn.hidden = true; });
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  $('#nav [data-nav="install"]').hidden = standalone;
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; btn.hidden = false; });
+  btn.addEventListener('click', doInstall);
+  window.addEventListener('appinstalled', () => { installPrompt = null; btn.hidden = true; $('#nav [data-nav="install"]').hidden = true; });
+}
+let installPrompt = null;
+async function doInstall() {
+  if (!installPrompt) { openSheet('help', 'hInstall'); return; }
+  installPrompt.prompt();
+  try { await installPrompt.userChoice; } catch {}
+  installPrompt = null;
+  $('#btnInstall').hidden = true;
 }
 document.addEventListener('keydown', (e) => {
+  if (sheet.open) return;
+  if (document.documentElement.classList.contains('nav-open')) { if (e.key === 'Escape') { e.preventDefault(); closeNav(true); } return; }
   if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable]')) return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === '?') { e.preventDefault(); openSheet('help'); return; }
   if (e.key === 'ArrowLeft') { e.preventDefault(); go(viewPly() - 1); }
   else if (e.key === 'ArrowRight') { e.preventDefault(); go(viewPly() + 1); }
   else if (e.key === 'h' || e.key === 'H') { e.preventDefault(); S.pz ? pzHint() : toggleHint(); }
@@ -1458,11 +1471,240 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 'Escape') { board.clearAnnotations(); closeMore(); if (S.hintOn) toggleHint(); }
 });
 
+/* ================= menu, stats, help ================= */
+const PAGES = {
+  play: ['Chơi với máy', 'Chấm điểm từng nước, có huấn luyện viên đi kèm'],
+  puzz: ['Giải đố', 'Thế cờ thật từ lichess, độ khó theo điểm của bạn'],
+  open: ['Khai cuộc', 'Tên khai cuộc, ý tưởng và mô phỏng từng nước'],
+  dict: ['Từ điển lỗi', 'Bẫy khai cuộc, lỗi chiến thuật, mẫu chiếu hết'],
+  bots: ['Đối thủ & cài đặt', 'Chọn bot, chế độ chơi, bàn cờ và âm thanh'],
+};
+const X_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+const botStamp = (b) => ({ id: b.id, name: b.name, e: eloText(b) });
+const fmt1 = (x) => x.toFixed(1).replace('.', ',');
+
+/* Keep one record per game (upsert by id), so reloads, takebacks and a later review update it instead of adding a new one. */
+function recordGame() {
+  if (!S.started || !isOver() || !S.hist.length) return;
+  if (!S.gameId) S.gameId = Date.now();
+  const gb = S.gameBot || botStamp(bot());
+  const r = S.result;
+  const acc = accuracy(S.userColor);
+  const rec = {
+    id: S.gameId, t: Date.now(), b: gb.id, nm: gb.name, e: gb.e, c: S.userColor,
+    r: r.winner == null ? 'd' : r.winner === S.userColor ? 'w' : 'l', why: r.reason, n: S.hist.length,
+    acc: acc == null ? null : Math.round(acc * 10) / 10, m: S.mode, h: S.hintsUsed,
+  };
+  const i = S.games.findIndex((g) => g.id === rec.id);
+  if (i < 0) { S.games.push(rec); if (S.games.length > 100) S.games = S.games.slice(-100); return; }
+  const old = S.games[i];
+  if (old.r === rec.r && old.n === rec.n && old.acc === rec.acc && old.h === rec.h) return;
+  rec.t = old.t;
+  S.games[i] = rec;
+}
+
+function renderNav() {
+  document.querySelectorAll('#nav [data-go]').forEach((b) => {
+    if (b.dataset.go === S.tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
+  const [t, sub] = PAGES[S.tab] || PAGES.play;
+  $('#pageTitle').textContent = t;
+  $('#pageSub').textContent = sub;
+  if (!window.claude) document.title = S.tab === 'play' ? 'Đấu Stockfish' : `${t} · Đấu Stockfish`;
+  const snd = $('#nav [data-nav="sound"]');
+  const lab = S.sound ? 'Âm thanh: bật' : 'Âm thanh: tắt';
+  snd.querySelector('.l').textContent = lab;
+  snd.title = lab + ' (bấm để ' + (S.sound ? 'tắt' : 'bật') + ')';
+  snd.classList.toggle('muted', !S.sound);
+}
+function applyNavMini() {
+  document.documentElement.classList.toggle('nav-mini', S.navMini);
+  const b = $('#nav [data-nav="collapse"]');
+  const lab = S.navMini ? 'Mở rộng menu' : 'Thu gọn menu';
+  b.setAttribute('aria-label', lab);
+  b.title = lab;
+}
+
+/* Switch section; from the menu on a phone, also bring that section into view. */
+function goTab(tab, fromMenu) {
+  if (S.pz && tab === 'play') exitPuzzle();
+  else {
+    S.tab = tab;
+    if (tab === 'dict') renderDict();
+    renderAll();
+  }
+  if (fromMenu && isPhone()) {
+    requestAnimationFrame(() => {
+      if (tab === 'play' || tab === 'puzz') window.scrollTo({ top: 0, behavior: 'smooth' });
+      else document.querySelector('.side').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+}
+
+const DRAWER_Q = window.matchMedia('(max-width: 979px) and (min-height: 561px), (max-width: 599px)');
+const LANDSCAPE_Q = window.matchMedia('(orientation: landscape) and (max-height: 560px)');
+const drawerMode = () => DRAWER_Q.matches && !LANDSCAPE_Q.matches;
+const navOpen = () => document.documentElement.classList.contains('nav-open');
+function openNav() {
+  if (!drawerMode() || navOpen()) return;
+  closeMore();
+  document.documentElement.classList.add('nav-open');
+  $('#scrim').hidden = false;
+  $('#btnMenu').setAttribute('aria-expanded', 'true');
+  $('.app').inert = true;
+  $('#mbar').inert = true;
+  requestAnimationFrame(() => ($('#nav [aria-current="page"]') || $('#nav .nav-i')).focus({ preventScroll: true }));
+}
+function closeNav(returnFocus) {
+  if (!navOpen()) return;
+  document.documentElement.classList.remove('nav-open');
+  $('#scrim').hidden = true;
+  $('#btnMenu').setAttribute('aria-expanded', 'false');
+  $('.app').inert = false;
+  $('#mbar').inert = false;
+  if (returnFocus) $('#btnMenu').focus({ preventScroll: true });
+}
+$('#btnMenu').addEventListener('click', () => (navOpen() ? closeNav(true) : openNav()));
+$('#scrim').addEventListener('click', () => closeNav(true));
+for (const q of [DRAWER_Q, LANDSCAPE_Q]) q.addEventListener?.('change', () => { if (!drawerMode()) closeNav(false); });
+/* Swipe the drawer to the left to close it. */
+{
+  let x0 = null, y0 = 0;
+  $('#nav').addEventListener('touchstart', (e) => { if (navOpen()) { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; } }, { passive: true });
+  $('#nav').addEventListener('touchend', (e) => {
+    if (x0 == null) return;
+    const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+    x0 = null;
+    if (dx < -60 && Math.abs(dx) > Math.abs(dy) * 1.5) closeNav(false);
+  }, { passive: true });
+}
+$('#nav').addEventListener('click', (e) => {
+  if (e.target.closest('.nav-brand')) { e.preventDefault(); closeNav(false); goTab('play', true); return; }
+  const g = e.target.closest('[data-go]');
+  if (g) { closeNav(false); goTab(g.dataset.go, true); return; }
+  const a = e.target.closest('[data-nav]');
+  if (!a) { if (e.target.closest('a')) closeNav(false); return; }
+  unlockAudio();
+  switch (a.dataset.nav) {
+    case 'close': closeNav(true); break;
+    case 'newgame': closeNav(false); runCmd('newgame'); break;
+    case 'stats': closeNav(false); openSheet('stats'); break;
+    case 'help': closeNav(false); openSheet('help'); break;
+    case 'install': closeNav(false); doInstall(); break;
+    case 'sound':
+      S.sound = !S.sound;
+      setSound(S.sound);
+      if (S.sound) sfx('move');
+      renderNav();
+      if (S.tab === 'bots') renderBots();
+      save();
+      break;
+    case 'collapse': S.navMini = !S.navMini; applyNavMini(); save(); break;
+  }
+});
+
+const sheet = $('#sheet');
+function openSheet(kind, anchorId) {
+  const title = kind === 'stats' ? 'Thống kê của bạn' : 'Hướng dẫn';
+  sheet.innerHTML = `<div class="sheet-h"><h2 id="sheetTitle">${title}</h2><button type="button" class="sheet-x" data-sheet="close" aria-label="Đóng">${X_SVG}</button></div><div class="sheet-b">${kind === 'stats' ? statsHtml() : helpHtml()}</div>`;
+  if (typeof sheet.showModal === 'function') { if (!sheet.open) sheet.showModal(); } else sheet.setAttribute('open', '');
+  const body = sheet.querySelector('.sheet-b');
+  const target = anchorId && sheet.querySelector('#' + anchorId);
+  body.scrollTop = target ? target.offsetTop - body.offsetTop - 8 : 0;
+}
+function closeSheet() { if (typeof sheet.close === 'function') sheet.close(); else sheet.removeAttribute('open'); }
+sheet.addEventListener('click', (e) => {
+  if (e.target === sheet || e.target.closest('[data-sheet="close"]')) { closeSheet(); return; }
+  const t = e.target.closest('[data-sheet-go]');
+  if (t) { closeSheet(); goTab(t.dataset.sheetGo, true); }
+});
+
+function sparkSvg(vals) {
+  if (vals.length < 2) return '';
+  const W = 300, H = 56, p = 6;
+  const lo = Math.min(...vals), hi = Math.max(...vals), span = Math.max(20, hi - lo);
+  const pts = vals.map((v, i) => `${(p + ((W - 2 * p) * i) / (vals.length - 1)).toFixed(1)},${(H - p - ((H - 2 * p) * (v - lo)) / span).toFixed(1)}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Điểm giải đố qua ${vals.length} thế gần nhất, từ ${vals[0]} đến ${vals[vals.length - 1]}"><polyline points="${pts}" fill="none" stroke="#93c35a" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`;
+}
+function statsHtml() {
+  const G = S.games;
+  const n = G.length;
+  const cnt = (r) => G.filter((g) => g.r === r).length;
+  const w = cnt('w'), d = cnt('d'), l = cnt('l');
+  const accs = G.filter((g) => g.acc != null).map((g) => g.acc);
+  const avg = accs.length ? accs.reduce((a, b) => a + b, 0) / accs.length : null;
+  let h = '<h3>Ván với máy</h3>';
+  if (!n) {
+    h += '<p>Chưa có ván nào kết thúc. Chơi hết một ván với máy (thắng, hòa hoặc đầu hàng) để bắt đầu có thống kê.</p><div><button type="button" class="btn go" data-sheet-go="bots">Chọn đối thủ</button></div>';
+  } else {
+    h += `<div class="kpis"><div><small>Ván đã chơi</small><b>${n}</b></div><div><small>Tỉ lệ thắng</small><b>${Math.round((w * 100) / n)}%</b></div><div><small>Độ chính xác TB</small><b>${avg == null ? '—' : fmt1(avg)}</b></div></div>`;
+    h += `<div class="wdl" role="img" aria-label="Thắng ${w}, hòa ${d}, thua ${l}">${w ? `<i class="w" style="flex:${w}"></i>` : ''}${d ? `<i class="d" style="flex:${d}"></i>` : ''}${l ? `<i class="l" style="flex:${l}"></i>` : ''}</div>`;
+    h += `<div class="wdl-k"><span><i style="background:var(--green)"></i>Thắng <b>${w}</b></span><span><i style="background:#8a8781"></i>Hòa <b>${d}</b></span><span><i style="background:var(--bad)"></i>Thua <b>${l}</b></span></div>`;
+  }
+  h += '<h3>Giải đố</h3>';
+  h += `<div class="kpis"><div><small>Điểm giải đố</small><b>${S.pzRating}</b></div><div><small>Giải đúng</small><b>${S.pzSolved}/${S.pzGames}</b></div><div><small>Chuỗi dài nhất</small><b>${S.pzBest}</b></div></div>`;
+  const rs = S.pzHist.filter((x) => Number.isFinite(x.r)).map((x) => x.r);
+  h += rs.length >= 2 ? sparkSvg(rs) : `<p class="note">${S.pzGames ? 'Giải thêm vài thế để thấy biểu đồ điểm.' : 'Chưa giải thế cờ nào.'} <button type="button" class="btn ghost" data-sheet-go="puzz" style="padding:4px 8px">Giải đố ngay</button></p>`;
+  if (n) {
+    const by = new Map();
+    for (const g of G) {
+      const k = g.b === 'custom' ? `custom:${g.e}` : g.b;
+      if (!by.has(k)) by.set(k, { g, w: 0, d: 0, l: 0 });
+      by.get(k)[g.r]++;
+    }
+    const order = (k) => { const i = BOTS.findIndex((b) => b.id === k); return i < 0 ? 99 : i; };
+    const rows = [...by.entries()].sort((a, b) => order(a[0]) - order(b[0])).map(([k, v]) => {
+      const b = botById(v.g.b) || { tone: '#6b6f7a', icon: 'wr' };
+      return `<div class="vs-r"><span class="ava" style="background:${b.tone}"><i class="${b.icon}"></i></span><div><b>${esc(v.g.nm)}</b><small>${esc(v.g.e)}${v.w ? ' · đã thắng' : ''}</small></div><div class="sc"><span class="w" title="Thắng">${v.w}</span><span title="Hòa">${v.d}</span><span class="l" title="Thua">${v.l}</span></div></div>`;
+    }).join('');
+    h += `<h3>Theo đối thủ</h3><div class="vs">${rows}</div>`;
+    const RES = { w: 'Thắng', d: 'Hòa', l: 'Thua' };
+    const recent = G.slice(-12).reverse().map((g) => {
+      const dt = new Date(g.t);
+      const when = `${dt.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} ${dt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
+      return `<div class="gl-r"><span class="res ${g.r}">${RES[g.r]}</span><div class="who3"><b>${esc(g.nm)} <span style="color:var(--muted);font-weight:600">${esc(g.e)}</span></b><small>${g.c === 'w' ? 'Cầm Trắng' : 'Cầm Đen'} · ${Math.ceil(g.n / 2)} nước · ${esc(g.why)} · ${when}</small></div><div class="ac">${g.acc == null ? '—' : fmt1(g.acc)}<small>chính xác</small></div></div>`;
+    }).join('');
+    h += `<h3>Ván gần đây</h3><div class="gl">${recent}</div>`;
+    h += '<p class="fine">Độ chính xác chỉ có ở ván đã được chấm điểm (chế độ Học tập, Thân thiện, hoặc bấm Chấm điểm sau ván Thử thách). Thống kê lưu trong trình duyệt này.</p>';
+  }
+  return h;
+}
+function helpHtml() {
+  const key = (k, t) => `<span>${k}</span><span>${t}</span>`;
+  const legend = ['brilliant', 'great', 'best', 'excellent', 'good', 'book', 'inaccuracy', 'mistake', 'miss', 'blunder']
+    .map((k) => `<span>${badgeSvg(k, 20)}${CLASSES[k].vn}</span>`).join('');
+  return `<h3>Phím tắt</h3>
+    <div class="keys">
+      ${key('<kbd>←</kbd> <kbd>→</kbd>', 'Xem lại nước trước, nước sau')}
+      ${key('<kbd>H</kbd>', 'Bật hoặc tắt gợi ý. Trong giải đố: lần đầu tô ô, lần sau hiện mũi tên')}
+      ${key('<kbd>G</kbd>', 'Đi lại, lùi về lượt của bạn')}
+      ${key('<kbd>F</kbd>', 'Lật bàn cờ')}
+      ${key('<kbd>N</kbd> <kbd>Enter</kbd>', 'Thế đố tiếp theo, sau khi giải xong')}
+      ${key('<kbd>Esc</kbd>', 'Xóa mũi tên, tắt gợi ý, đóng menu')}
+      ${key('<kbd>?</kbd>', 'Mở trang hướng dẫn này')}
+    </div>
+    <h3>Chuột và cảm ứng</h3>
+    <p>Kéo thả quân, hoặc bấm quân rồi bấm ô muốn đi. Thả sai chỗ thì quân tự về chỗ cũ.</p>
+    <p>Chuột phải kéo để vẽ mũi tên, chuột phải bấm để đánh dấu ô, bấm chuột trái lên bàn cờ để xóa. Trên điện thoại: chạm giữ một ô rồi kéo để vẽ mũi tên, chạm một lần để xóa.</p>
+    <h3>Ký hiệu chấm điểm</h3>
+    <div class="legend">${legend}</div>
+    <p class="note">Mỗi nước được so với nước tốt nhất của Stockfish theo xác suất thắng. Thiên tài là thí quân chính xác; Nước hay là nước duy nhất giữ được thế cờ.</p>
+    <h3 id="hInstall">Cài như ứng dụng</h3>
+    <p><b>Máy tính, Android</b> (Chrome, Edge): bấm <b>Cài ứng dụng</b> trong menu hoặc biểu tượng cài trên thanh địa chỉ.</p>
+    <p><b>iPhone, iPad</b> (Safari): bấm nút Chia sẻ, chọn <b>Thêm vào MH chính</b>.</p>
+    <p class="note">Sau khi cài, trang mở toàn màn hình và chơi được cả khi không có mạng.</p>
+    <h3>Giới thiệu</h3>
+    <p class="fine">Engine: Stockfish 17.1 (GPLv3)${eng.threads > 1 ? `, đang chạy ${eng.threads} luồng` : ''}. Khai cuộc và giải đố: dữ liệu lichess (CC0). Quân cờ: bộ cburnett (CC BY-SA 3.0). Phông chữ: Be Vietnam Pro (OFL). Mã nguồn: <a href="https://github.com/HoangDuc1003/chess-com" target="_blank" rel="noopener">github.com/HoangDuc1003/chess-com</a>. Dự án cá nhân để học cờ, không liên quan tới trang cờ nào khác.</p>`;
+}
+
 /* ================= boot ================= */
 function start(hotData) {
   restore(hotData && Object.keys(hotData).length ? hotData : load());
   setSound(S.sound);
   document.documentElement.dataset.board = S.boardTheme;
+  if (S.started && !S.gameBot) S.gameBot = botStamp(bot());
+  if (S.started && !S.gameId) S.gameId = Date.now();
+  applyNavMini();
   setupPwa();
   if (!S.started) S.tab = S.tab === 'play' ? 'bots' : S.tab;
   board.setOrientation(S.orientation);

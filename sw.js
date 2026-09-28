@@ -1,5 +1,5 @@
 // Offline support. Bump VERSION when shipping changes to app files.
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CORE = `core-${VERSION}`;
 const HEAVY = 'heavy-v1'; // engine, fonts, opening data: large and rarely changed
 

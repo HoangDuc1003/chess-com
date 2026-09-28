@@ -16,6 +16,7 @@ Chơi cờ vua với máy và học ngay trong lúc chơi. Bố cục theo kiể
 - **Khai cuộc:** tên khai cuộc cho cả hai bên (3.815 biến từ dữ liệu lichess), hơn 100 ghi chú ý tưởng bằng tiếng Việt, các nước lý thuyết tiếp theo, bàn cờ nhỏ mô phỏng, thư viện 60 tuyến chính chia theo nhóm. Ở chế độ Học tập, khi bạn (hoặc máy) vừa đi vào một khai cuộc, trang hiện thẻ có sơ đồ thế cờ để bạn biết mình đang chơi khai cuộc gì.
 - **Giải đố:** 5.706 thế cờ thật từ lichess (chiếu hết, đòn chĩa, ghim, xiên, thí quân, khai cuộc, trung cuộc, tàn cuộc…), lọc theo chủ đề và độ khó, có điểm giải đố riêng tự điều chỉnh theo kết quả. Ván đang chơi được giữ nguyên trong lúc giải.
 - **Từ điển lỗi:** 25 bài về bẫy khai cuộc, lỗi chiến thuật, mẫu chiếu hết và tàn cuộc. Bài nào cũng có mô phỏng từng nước kèm lời giải thích, và đã được kiểm tra bằng Stockfish.
+- **Menu và thống kê:** menu bên trái (thanh đầy đủ trên màn hình rộng, dải biểu tượng trên laptop, menu trượt trên điện thoại) để vào Chơi, Giải đố, Khai cuộc, Từ điển lỗi, Đối thủ. Trang **Thống kê** ghi lại các ván đã chơi (thắng/hòa/thua, độ chính xác, thành tích theo từng bot) và điểm giải đố; bot bạn đã thắng có dấu ✓. Trang **Hướng dẫn** có phím tắt và ý nghĩa các ký hiệu.
 - **Ba chế độ:** Học tập (đầy đủ trợ giúp, dừng lại khi bạn đi sai), Thân thiện, Thử thách (không trợ giúp).
 - **Thao tác như trang cờ thật:** kéo thả (thả sai chỗ thì quân về chỗ cũ), bấm để đi, chuột phải để vẽ mũi tên và đánh dấu ô (trên điện thoại: chạm giữ rồi kéo), hiệu ứng trượt quân, âm thanh, xem lại nước bằng phím ← →, **G** để đi lại, **H** để gợi ý, **F** để lật bàn cờ.
 - **Điện thoại:** thanh công cụ cố định ở đáy, bố cục riêng khi xoay ngang, rung khi ăn quân. Cài được như ứng dụng (PWA) và chơi được khi không có mạng.
@@ -40,6 +41,8 @@ python3 tools/serve.py 8080
 2. **Project Name:** `chess-bot-com` (Vercel không cho dùng dấu gạch dưới trong tên miền).
 3. **Framework Preset:** Other. Để trống Build Command và Output Directory.
 4. Bấm **Deploy**. Trang sẽ có ở `https://chess-bot-com.vercel.app` (nếu tên còn trống). Mỗi lần push lên nhánh `main`, Vercel tự triển khai lại.
+
+Chỉ Import **một lần**. Nếu lỡ Import hai lần, Vercel tạo hai project cùng chạy từ một repo; giữ `chess-bot-com` và xóa project còn lại ở **Settings → General → Delete Project**.
 
 `vercel.json` đã cấu hình sẵn header cách ly (COOP/COEP) để chạy đa luồng, cùng cache dài hạn cho engine và font.
 
