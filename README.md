@@ -11,7 +11,7 @@
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
 ![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=for-the-badge)
 
-**A browser chess trainer: play 12 Stockfish bots from ≈250 Elo to full strength, with every move graded live, a coach that explains your mistakes, openings, puzzles and a mistake dictionary. Vietnamese interface, no server, works offline.**
+**A browser chess trainer: play 12 Stockfish bots from ≈250 Elo to full strength, with every move graded live, a coach that explains your mistakes, an AI chat that sees the board, openings, puzzles and a mistake dictionary. Vietnamese interface, no server, works offline.**
 
 [![Live Demo](https://img.shields.io/badge/🚀_Play_Now-chess--training--com.vercel.app-success?style=for-the-badge&logo=vercel&logoColor=white)](https://chess-training-com.vercel.app)
 
@@ -36,7 +36,9 @@
 - **Openings:** Names for both sides (3,815 lichess lines), 100+ Vietnamese guides with plans and traps, a 60-line library in 7 groups, and mini-board simulations. In Learn mode a card with a diagram tells you which opening you just entered.
 - **Puzzles:** 5,706 real puzzles from the lichess database (mates, forks, pins, sacrifices, endgames…), filtered by theme and difficulty, with a personal puzzle rating that adjusts after each puzzle.
 - **Mistake Dictionary:** 25 lessons on opening traps, tactical errors, mating patterns and endgames, each with a move-by-move simulation checked by Stockfish.
-- **Game Review & Stats:** Accuracy and a move-class table at the end of every game. The Stats page records wins, draws and losses, accuracy, results per bot and a puzzle rating chart. Bots you have beaten get a ✓.
+- **Game Review With Best Moves:** Accuracy and a move-class table at the end of every game. Step through the finished game and each position shows what the move was worth, what was better, and a green arrow for the engine's best move from there. The board stays on the move you are studying.
+- **AI Chat (Hỏi AI):** Ask about the position on the board, including old positions while reviewing. A built-in Stockfish assistant answers instantly and offline (best move, who is better, why a move was bad, threats, opening, plan, rules). Add your own Google Gemini (free tier) or Anthropic Claude key to ask anything in your own words; answers stream in, and moves in them light up on the board when you hover or tap.
+- **Stats:** Wins, draws and losses, accuracy, results per bot and a puzzle rating chart. Bots you have beaten get a ✓.
 
 ### Everywhere 📱
 
@@ -65,6 +67,11 @@
 | <img src="./images/desktop/puzzles.png" width="400"/> | <img src="./images/desktop/openings.png" width="400"/> |
 | *Real lichess puzzles with hints and a personal rating.* | *Step-by-step simulation of the Najdorf.* |
 
+| **AI Chat That Sees the Board** | **Review With Best Move** |
+|:---:|:---:|
+| <img src="./images/desktop/ai-chat.png" width="400"/> | <img src="./images/desktop/review-best.png" width="400"/> |
+| *Instant offline answers from Stockfish; hovering h3 draws it.* | *After the game: what each move was worth and the best move from here.* |
+
 | **Mistake Dictionary** | **Opponents & Settings** |
 |:---:|:---:|
 | <img src="./images/desktop/dictionary.png" width="400"/> | <img src="./images/desktop/bots.png" width="400"/> |
@@ -72,10 +79,10 @@
 
 ### 📱 Mobile
 
-| **Play With Clock** | **Menu** | **Puzzle** |
-|:---:|:---:|:---:|
-| <img src="./images/mobile/play.png" width="250"/> | <img src="./images/mobile/menu.png" width="250"/> | <img src="./images/mobile/puzzle.png" width="250"/> |
-| *Clocks, opening card, bottom toolbar.* | *Slide-out navigation.* | *Puzzles on the main board.* |
+| **Play With Clock** | **Menu** | **Puzzle** | **AI Chat** |
+|:---:|:---:|:---:|:---:|
+| <img src="./images/mobile/play.png" width="200"/> | <img src="./images/mobile/menu.png" width="200"/> | <img src="./images/mobile/puzzle.png" width="200"/> | <img src="./images/mobile/ai-chat.png" width="200"/> |
+| *Clocks, opening card, bottom toolbar.* | *Slide-out navigation.* | *Puzzles on the main board.* | *Tap a move to see it on the board.* |
 
 ---
 
@@ -119,6 +126,17 @@ Each move is compared with Stockfish's best move by **win probability**, using t
 | Miss (Bỏ lỡ) | ✕ | Failed to punish the opponent's mistake |
 | Blunder | `??` | Δ > 20 |
 
+### AI Chat
+
+The chat always describes the position on screen to the assistant: FEN, an ASCII diagram, the piece list, material, the moves so far, the opening, the review of the last move, loose pieces and Stockfish's top three lines (analysed on demand in about half a second).
+
+| Assistant | How it answers |
+|-----------|----------------|
+| **Stockfish (offline, default)** | Recognises common questions and answers instantly from the engine lines and the app's own data. No network, no account. |
+| **Google Gemini** / **Anthropic Claude** | Your own API key, stored only in your browser. The question and position go straight from the browser to the provider and the answer is streamed back. If the call fails, the offline assistant answers instead. |
+
+In Challenge mode the assistant gives no moves or evaluations until the game is over.
+
 ### Engine Setup
 
 - **Builds:** Stockfish 17.1 lite, multi-threaded when the page is `crossOriginIsolated` (SharedArrayBuffer), otherwise single-threaded, with an asm.js fallback.
@@ -156,6 +174,7 @@ Ratings under 1320 are estimates. From 1320 up they use Stockfish's engine Elo s
 | Right-drag / right-click | Draw an arrow / highlight a square (`Shift` green, `Ctrl` red, `Alt` blue) |
 | Right-click on the bot's turn | Cancel premoves |
 | Touch: hold, then drag | Draw an arrow on phones |
+| Hover / tap a move in an AI answer | Show that move as an arrow on the board |
 
 ---
 
@@ -187,6 +206,10 @@ chess-com/
 │   │   ├── puzzles.js          #   Puzzle selection and puzzle rating
 │   │   ├── lessons.js          #   Mistake dictionary (25 lessons)
 │   │   └── hash.js             #   Position hashing for the opening data
+│   ├── ai/                     # The chat assistant
+│   │   ├── context.js          #   What the assistant sees: position, game, engine lines
+│   │   ├── local.js            #   Instant offline answers from Stockfish
+│   │   └── providers.js        #   Gemini / Claude streaming from the browser
 │   ├── ui/                     # Rendering and input
 │   │   ├── board.js            #   Board: drag & drop, premoves, arrows, highlights, animation
 │   │   ├── main-board.js       #   What is drawn on the main board
@@ -194,10 +217,11 @@ chess-com/
 │   │   ├── play-pane.js        #   Coach, hint, accuracy, opening card, move list
 │   │   ├── panes.js            #   Openings, dictionary, puzzles, opponents & settings
 │   │   ├── sim.js              #   Mini board that replays a line with captions
+│   │   ├── chat.js             #   The "Hỏi AI" pane
 │   │   ├── menu.js, dialogs.js #   Main menu / drawer, stats and help dialogs
 │   │   ├── controls.js         #   Clicks, keyboard shortcuts, mouse wheel
 │   │   └── sound.js, pwa.js    #   Synthesized sounds & haptics, offline install
-│   └── styles/                 # base, layout, board, panes, menu, dialogs, pieces (.css)
+│   └── styles/                 # base, layout, board, panes, menu, dialogs, chat, pieces (.css)
 ├── data/                       # openings.json, puzzles.json (compact lichess data)
 ├── engine/                     # Stockfish 17.1 builds (WASM single / multi-thread, asm.js)
 ├── lib/chess.js                # Rules and move generation
@@ -219,6 +243,7 @@ chess-com/
 | **Frontend** | Vanilla JavaScript (ES modules), HTML, CSS. No framework, no build step |
 | **Data** | lichess chess-openings (3,815 lines), lichess puzzle database (5,706 puzzles) |
 | **Offline & Install** | Service Worker, Web App Manifest (PWA) |
+| **AI Chat** | Offline Stockfish assistant; optional Google Gemini or Anthropic Claude (bring your own key, streamed from the browser) |
 | **Audio** | Web Audio API |
 | **Hosting** | Vercel (static, cross-origin isolation headers) |
 

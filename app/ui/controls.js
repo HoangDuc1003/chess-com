@@ -2,7 +2,7 @@
 import { flags, S, viewPly } from '../core/state.js';
 import { save } from '../core/storage.js';
 import { $, isPhone, toast } from '../core/util.js';
-import { eng, schedule, startPostReview } from '../analysis/scheduler.js';
+import { eng, schedule, startPostReview, viewChanged } from '../analysis/scheduler.js';
 import { askResign, flip, go, newGame, retry, showBest, takeback, toggleHint } from '../game/game.js';
 import { exitPuzzle, pzHint, pzSolution, startPuzzle } from '../game/puzzle.js';
 import { isSheetOpen, openSheet } from './dialogs.js';
@@ -73,6 +73,7 @@ function onSetting(e) {
     case 'optPremove': S.premovePref = el.checked; if (!S.premovePref) board.cancelPremoves(); break;
     case 'optAutoQ': S.autoQueen = el.checked; break;
     case 'optDots': S.showDots = el.checked; board.render(); break;
+    case 'optBest': S.bestArrow = el.checked; board.setArrows(arrows()); viewChanged(); break;
     case 'optEval': S.evalBarPref = el.checked; renderEval(); break;
     case 'optPause': S.pausePref = el.checked; if (!S.pausePref && S.paused) { S.paused = false; schedule(); } break;
     default: return;
@@ -174,13 +175,15 @@ export function bindControls() {
   side.addEventListener('click', onAct);
   side.addEventListener('input', onEloInput);
   side.addEventListener('change', onSetting);
-  // Hovering a book move in the openings pane previews it on the board.
-  side.addEventListener('mouseover', (e) => {
-    const c = e.target.closest('.cont');
+  // Hovering a book move (openings pane) or a move in a chat answer previews it on the board.
+  // Mouse only: on touch screens a tap would fire a hover and a leave around the click.
+  side.addEventListener('pointerover', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    const c = e.target.closest('.cont, .mvl');
     const u = c ? c.dataset.uci : null;
     if (u !== S.preview) { S.preview = u; board.setArrows(arrows()); }
   });
-  side.addEventListener('mouseleave', () => { if (S.preview) { S.preview = null; board.setArrows(arrows()); } });
+  side.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && S.preview) { S.preview = null; board.setArrows(arrows()); } });
   $('#over').addEventListener('click', onAct);
 
   document.addEventListener('click', (e) => {

@@ -1,17 +1,18 @@
 // Offline support. Bump VERSION when shipping changes to app files.
-const VERSION = 'v5';
+const VERSION = 'v6';
 const CORE = `core-${VERSION}`;
 const HEAVY = 'heavy-v1'; // engine, fonts, opening data: large and rarely changed
 
 const CORE_FILES = [
   './', 'manifest.webmanifest', 'lib/chess.js', 'fonts/fonts.css', 'icons/icon-192.png', 'icons/favicon-32.png',
   'app/main.js',
+  'app/ai/context.js', 'app/ai/local.js', 'app/ai/providers.js',
   'app/analysis/engine.js', 'app/analysis/review.js', 'app/analysis/scheduler.js',
   'app/content/hash.js', 'app/content/lessons.js', 'app/content/opening-guides.js', 'app/content/opening-library.js', 'app/content/openings.js', 'app/content/puzzles.js',
   'app/core/config.js', 'app/core/state.js', 'app/core/storage.js', 'app/core/util.js',
   'app/game/bots.js', 'app/game/clock.js', 'app/game/game.js', 'app/game/puzzle.js',
-  'app/ui/board.js', 'app/ui/controls.js', 'app/ui/dialogs.js', 'app/ui/main-board.js', 'app/ui/menu.js', 'app/ui/panes.js', 'app/ui/play-pane.js', 'app/ui/pwa.js', 'app/ui/render.js', 'app/ui/sim.js', 'app/ui/sound.js',
-  'app/styles/base.css', 'app/styles/layout.css', 'app/styles/board.css', 'app/styles/panes.css', 'app/styles/menu.css', 'app/styles/dialogs.css', 'app/styles/pieces.css',
+  'app/ui/board.js', 'app/ui/chat.js', 'app/ui/controls.js', 'app/ui/dialogs.js', 'app/ui/main-board.js', 'app/ui/menu.js', 'app/ui/panes.js', 'app/ui/play-pane.js', 'app/ui/pwa.js', 'app/ui/render.js', 'app/ui/sim.js', 'app/ui/sound.js',
+  'app/styles/base.css', 'app/styles/layout.css', 'app/styles/board.css', 'app/styles/panes.css', 'app/styles/menu.css', 'app/styles/dialogs.css', 'app/styles/chat.css', 'app/styles/pieces.css',
 ];
 
 const HEAVY_FILES = ['data/openings.json', 'data/puzzles.json', 'icons/icon-512.png', 'icons/apple-touch-icon.png',

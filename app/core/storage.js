@@ -18,7 +18,7 @@ export function snapshot() {
     pzChip: S.pzChip, pzLevel: S.pzLevel, pzSeen: S.pzSeen.slice(-400), pzHist: S.pzHist.slice(-30),
     games: S.games.slice(-100), gameId: S.gameId, gameBot: S.gameBot, navMini: S.navMini,
     tc: S.tc, clock: S.clock ? { ...S.clock, w: clockLeft('w'), b: clockLeft('b') } : null, flagged: S.flagged,
-    premovePref: S.premovePref, autoQueen: S.autoQueen, showDots: S.showDots,
+    premovePref: S.premovePref, autoQueen: S.autoQueen, showDots: S.showDots, bestArrow: S.bestArrow,
   };
 }
 export function save() { try { localStorage.setItem(STORE, JSON.stringify(snapshot())); } catch {} }
@@ -37,7 +37,7 @@ export function restore(d) {
   for (const k of ['sound', 'evalBarPref', 'pausePref', 'haptics', 'started', 'resigned']) pick(k, (v) => typeof v === 'boolean');
   pick('boardTheme', (v) => ['green', 'brown', 'blue', 'slate'].includes(v));
   pick('hintsUsed', (v) => Number.isFinite(v) && v >= 0);
-  pick('tab', (v) => ['play', 'open', 'puzz', 'dict', 'bots'].includes(v));
+  pick('tab', (v) => ['play', 'open', 'puzz', 'dict', 'bots', 'ai'].includes(v));
   for (const k of ['pzRating', 'pzGames', 'pzSolved', 'pzStreak', 'pzBest']) pick(k, (v) => Number.isFinite(v) && v >= 0 && v <= 100000);
   pick('pzChip', (v) => typeof v === 'string' && chipById(v).id === v);
   pick('pzLevel', (v) => ['easy', 'normal', 'hard'].includes(v));
@@ -50,7 +50,7 @@ export function restore(d) {
   pick('tc', (v) => !!TCS[v]);
   pick('clock', (v) => v && Number.isFinite(v.w) && Number.isFinite(v.b) && Number.isFinite(v.base) && Number.isFinite(v.inc));
   pick('flagged', (v) => v === 'w' || v === 'b');
-  for (const k of ['premovePref', 'autoQueen', 'showDots']) pick(k, (v) => typeof v === 'boolean');
+  for (const k of ['premovePref', 'autoQueen', 'showDots', 'bestArrow']) pick(k, (v) => typeof v === 'boolean');
   if (Array.isArray(d.moves)) {
     for (const u of d.moves) {
       try { pushMove(u); } catch { break; }

@@ -23,7 +23,7 @@ export const S = {
   tc: 'none', clock: null, flagged: null,
   // preferences
   movetime: 1000, sound: true, evalBarPref: true, pausePref: true, haptics: true, boardTheme: 'green',
-  premovePref: true, autoQueen: false, showDots: true, navMini: false,
+  premovePref: true, autoQueen: false, showDots: true, navMini: false, bestArrow: true,
   // panes
   tab: 'bots', lesson: null, dictCat: 'all', preview: null,
   openCardClosed: null, lastOpenFam: null, libCat: 'e4e5',

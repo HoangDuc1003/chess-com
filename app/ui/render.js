@@ -15,6 +15,7 @@ import { arrows, board } from './main-board.js';
 import { renderNav } from './menu.js';
 import { renderBots, renderDict, renderOpen, renderPuzz } from './panes.js';
 import { renderHintBox, renderPlay } from './play-pane.js';
+import { renderChat } from './chat.js';
 
 let raf = 0;
 export function live() {
@@ -208,6 +209,7 @@ export function renderAll() {
   else if (S.tab === 'dict') { if (!$('#paneDict').innerHTML || !S.lesson) renderDict(); }
   else if (S.tab === 'bots') renderBots();
   else if (S.tab === 'puzz') renderPuzz();
+  else if (S.tab === 'ai') renderChat();
   renderFooter();
   renderSummary();
   board.setArrows(arrows());

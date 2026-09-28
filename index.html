@@ -26,6 +26,7 @@
 <link rel="stylesheet" href="app/styles/panes.css">
 <link rel="stylesheet" href="app/styles/menu.css">
 <link rel="stylesheet" href="app/styles/dialogs.css">
+<link rel="stylesheet" href="app/styles/chat.css">
 <link rel="stylesheet" href="app/styles/pieces.css">
 </head>
 <body>
@@ -58,6 +59,10 @@
   <symbol id="i-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4.5h14a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5h-7.5L7 20v-3.5H5A1.5 1.5 0 0 1 3.5 15V6A1.5 1.5 0 0 1 5 4.5z"/><path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3L10.5 13.5"/><path d="M21 3l-6.5 18-4-7.5L3 9.5z"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24" fill="currentColor"><rect x="6.5" y="6.5" width="11" height="11" rx="2"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
 </svg>
 <nav class="nav" id="nav" aria-label="Menu chính">
   <div class="nav-head">
@@ -69,6 +74,7 @@
     <button class="nav-i" type="button" data-go="puzz" title="Giải đố"><svg aria-hidden="true"><use href="#i-puzzle"/></svg><span class="l">Giải đố</span><span class="s">Giải đố</span></button>
     <button class="nav-i" type="button" data-go="open" title="Khai cuộc"><svg aria-hidden="true"><use href="#i-book"/></svg><span class="l">Khai cuộc</span><span class="s">Khai cuộc</span></button>
     <button class="nav-i" type="button" data-go="dict" title="Từ điển lỗi"><svg aria-hidden="true"><use href="#i-lesson"/></svg><span class="l">Từ điển lỗi</span><span class="s">Từ điển</span></button>
+    <button class="nav-i" type="button" data-go="ai" title="Hỏi AI"><svg aria-hidden="true"><use href="#i-chat"/></svg><span class="l">Hỏi AI</span><span class="s">Hỏi AI</span></button>
     <button class="nav-i" type="button" data-go="bots" title="Đối thủ &amp; cài đặt"><svg aria-hidden="true"><use href="#i-bot"/></svg><span class="l">Đối thủ &amp; cài đặt</span><span class="s">Đối thủ</span></button>
     <hr>
     <button class="nav-i" type="button" data-nav="newgame" title="Ván mới"><svg aria-hidden="true"><use href="#i-new-game"/></svg><span class="l">Ván mới</span><span class="s">Ván mới</span></button>
@@ -114,6 +120,7 @@
         <button role="tab" data-tab="open" type="button"><svg aria-hidden="true"><use href="#i-book"/></svg>Khai cuộc</button>
         <button role="tab" data-tab="puzz" type="button"><svg aria-hidden="true"><use href="#i-puzzle"/></svg>Giải đố</button>
         <button role="tab" data-tab="dict" type="button"><svg aria-hidden="true"><use href="#i-lesson"/></svg>Từ điển</button>
+        <button role="tab" data-tab="ai" type="button"><svg aria-hidden="true"><use href="#i-chat"/></svg>Hỏi AI</button>
         <button role="tab" data-tab="bots" type="button"><svg aria-hidden="true"><use href="#i-bot"/></svg>Đối thủ</button>
       </nav>
       <div class="ostrip" id="ostrip" role="button" tabindex="0" title="Xem khai cuộc"></div>
@@ -122,6 +129,7 @@
         <section class="pane" data-panel="open" id="paneOpen" hidden></section>
         <section class="pane" data-panel="puzz" id="panePuzz" hidden></section>
         <section class="pane" data-panel="dict" id="paneDict" hidden></section>
+        <section class="pane" data-panel="ai" id="paneAi" hidden></section>
         <section class="pane" data-panel="bots" id="paneBots" hidden></section>
       </div>
       <footer class="foot">

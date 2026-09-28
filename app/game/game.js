@@ -4,7 +4,7 @@ import { TCS } from '../core/config.js';
 import { accuracy, bot, botColor, botStamp, canUserMove, flags, isOver, legalCount, need, S } from '../core/state.js';
 import { save } from '../core/storage.js';
 import { toast, uciObj } from '../core/util.js';
-import { eng, ensure, schedule } from '../analysis/scheduler.js';
+import { eng, ensure, schedule, viewChanged } from '../analysis/scheduler.js';
 import { chargeMove, resetClock } from './clock.js';
 import { pzDraw } from './puzzle.js';
 import { board, drawBoard } from '../ui/main-board.js';
@@ -175,6 +175,7 @@ export function go(p) {
   if (S.showBest && S.view !== S.showBest - 1) S.showBest = null;
   drawBoard(null);
   renderAll();
+  viewChanged();
 }
 /* Show the position before ply p with the engine's best move. */
 export function showBest(p) {

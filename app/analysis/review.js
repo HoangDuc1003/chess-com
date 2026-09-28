@@ -55,7 +55,7 @@ export function fmtCp(cp) {
     const m = Math.round((10000 - Math.abs(cp)) / 10);
     return (cp > 0 ? '' : '−') + 'M' + Math.max(1, m);
   }
-  const v = cp / 100;
+  const v = Math.round(cp / 10) / 10; // so that −0.04 shows as 0.0, not −0.0
   return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1);
 }
 

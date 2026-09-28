@@ -1,7 +1,7 @@
 // Drives Stockfish: one queue for move reviews, live analysis and bot moves, plus premoves and move grading.
 import { Chess } from '../../lib/chess.js';
 import { BAD } from '../core/config.js';
-import { bot, botColor, cache, canUserMove, flags, isOver, legalCount, need, S, userTurn } from '../core/state.js';
+import { bot, botColor, cache, canUserMove, fenAtPly, flags, isOver, legalCount, need, S, userTurn, viewPly } from '../core/state.js';
 import { save } from '../core/storage.js';
 import { posKey } from '../core/util.js';
 import { bookEntry, openingsReady } from '../content/openings.js';
@@ -10,8 +10,8 @@ import { classify, explain } from './review.js';
 import { humanPick } from '../game/bots.js';
 import { clockLeft, syncClock } from '../game/clock.js';
 import { applyMove, onBoardMove } from '../game/game.js';
-import { board, drawBadge, drawBoard } from '../ui/main-board.js';
-import { noteOpening } from '../ui/play-pane.js';
+import { arrows, board, drawBadge, drawBoard } from '../ui/main-board.js';
+import { noteOpening, renderPlay } from '../ui/play-pane.js';
 import { warmOffline } from '../ui/pwa.js';
 import { live, renderAll, renderBars, renderPill, renderSummary } from '../ui/render.js';
 import { buzz, sfx } from '../ui/sound.js';
@@ -57,6 +57,7 @@ export function schedule() {
   if (S.result) {
     if (S.postReview && queuePostReview()) { schedule(); return; }
     if (S.postReview && !S.pending.size) { S.postReview = false; renderAll(); }
+    if (!S.postReview && S.bestArrow) runViewAnalysis();
     return;
   }
   if (!S.started) return;
@@ -80,6 +81,53 @@ function runReview(n) {
       cache.set(k, e);
       if (S.postReview) renderSummary();
     },
+  });
+}
+
+/* After the game: analyse the position on screen a little deeper, so its best move can be shown while reviewing. */
+function runViewAnalysis() {
+  const fen = fenAtPly(viewPly());
+  const legal = legalCount(fen);
+  if (!legal) return;
+  const e = cache.get(posKey(fen));
+  if (e && (e.viewed || (e.depth >= 18 && e.lines.filter(Boolean).length >= Math.min(3, legal)))) return;
+  let last = 0;
+  eng.run({
+    kind: 'view', multipv: Math.min(3, legal), position: 'position fen ' + fen, go: 'go depth 18 movetime 2500',
+    onInfo: (i) => {
+      cacheInfo(fen, i);
+      const now = performance.now();
+      if (now - last > 400) { last = now; reviewUpdated(); }
+    },
+    onBest: () => { const x = cache.get(posKey(fen)); if (x) x.viewed = true; reviewUpdated(); },
+  });
+}
+function reviewUpdated() {
+  board.setArrows(arrows());
+  if (S.tab === 'play') renderPlay();
+}
+/* The player moved through a finished game: analyse the new position instead. */
+export function viewChanged() {
+  if (!isOver() || S.pz) return;
+  if (eng.is('view')) eng.cancel();
+  else schedule();
+}
+
+/* Analyse a position soon (before anything but a running bot search) and resolve with its engine lines. */
+export function analyzeSoon(fen, mpv = 3, timeout = 3500) {
+  if (!legalCount(fen)) return Promise.resolve(null);
+  if (!satisfied(fen, mpv)) {
+    ensure(fen, mpv);
+    if (eng.is('analysis') || eng.is('view')) eng.cancel();
+    else schedule();
+  }
+  const t0 = performance.now();
+  return new Promise((resolve) => {
+    const tick = () => {
+      if (satisfied(fen, mpv) || performance.now() - t0 > timeout) resolve(cache.get(posKey(fen)) || null);
+      else setTimeout(tick, 80);
+    };
+    tick();
   });
 }
 

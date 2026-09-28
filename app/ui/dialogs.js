@@ -103,6 +103,9 @@ function helpHtml() {
     <h3>Đi trước (premove) và đồng hồ</h3>
     <p>Khi máy đang nghĩ, bạn vẫn đi quân được: nước đó được tô đỏ và tự đi ngay khi máy đi xong (nếu còn hợp lệ). Có thể xếp nhiều nước liên tiếp. Bấm chuột phải để hủy.</p>
     <p>Chọn thể thức Bullet, Blitz hoặc Rapid ở mục Đối thủ để chơi có đồng hồ. Đồng hồ chạy sau nước đầu tiên của mỗi bên; hết giờ là thua, trừ khi bên kia không đủ quân để chiếu hết.</p>
+    <h3>Hỏi AI</h3>
+    <p>Tab <b>Hỏi AI</b> nhìn thấy thế cờ đang hiện trên bàn (kể cả khi bạn xem lại nước cũ). Trợ lý offline dùng Stockfish trả lời ngay các câu thường gặp: nước tốt nhất, ai đang hơn, vì sao nước vừa rồi sai, quân nào bị đe dọa. Muốn hỏi tự do, chọn Gemini (có gói miễn phí) hoặc Claude và dán API key của bạn. Rê chuột hoặc chạm vào nước đi trong câu trả lời để thấy mũi tên trên bàn cờ.</p>
+    <p class="note">Ở chế độ Thử thách, trợ lý không gợi ý nước đi cho tới khi hết ván. Sau ván, mũi tên xanh chỉ nước tốt nhất ở thế đang xem.</p>
     <h3>Ký hiệu chấm điểm</h3>
     <div class="legend">${legend}</div>
     <p class="note">Mỗi nước được so với nước tốt nhất của Stockfish theo xác suất thắng. Thiên tài là thí quân chính xác; Nước hay là nước duy nhất giữ được thế cờ.</p>

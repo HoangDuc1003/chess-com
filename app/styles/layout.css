@@ -68,11 +68,12 @@
 
 /* side panel */
 .side{background:var(--panel);border-radius:8px;display:flex;flex-direction:column;min-width:0;height:calc(var(--bs) + 108px);overflow:hidden}
-.tabs{display:grid;grid-template-columns:repeat(5,1fr);background:var(--panel-2)}
+.tabs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));background:var(--panel-2)}
 .tabs button{border:0;background:transparent;padding:10px 2px 9px;display:grid;justify-items:center;gap:3px;font-size:12px;white-space:nowrap;font-weight:700;color:var(--muted);border-bottom:3px solid transparent}
 .tabs button svg{width:20px;height:20px}
 .tabs button:hover{color:var(--ink)}
 .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--green)}
+@media (max-width:1180px){ .tabs button{font-size:11.5px} }
 .ostrip{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--line);font-size:13px;min-height:38px;cursor:pointer;background:var(--panel)}
 .ostrip:hover{background:#2c2a27}
 .ostrip .eco{font-weight:800;font-size:11px;padding:2px 6px;border-radius:4px;background:var(--raise);color:var(--ink-2);flex:none}

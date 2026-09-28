@@ -35,5 +35,6 @@ export const PAGES = {
   puzz: ['Giải đố', 'Thế cờ thật từ lichess, độ khó theo điểm của bạn'],
   open: ['Khai cuộc', 'Tên khai cuộc, ý tưởng và mô phỏng từng nước'],
   dict: ['Từ điển lỗi', 'Bẫy khai cuộc, lỗi chiến thuật, mẫu chiếu hết'],
+  ai: ['Hỏi AI', 'Hỏi về thế cờ đang xem, trả lời ngay'],
   bots: ['Đối thủ & cài đặt', 'Chọn bot, chế độ chơi, bàn cờ và âm thanh'],
 };

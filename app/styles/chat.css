@@ -1,0 +1,46 @@
+/* "Hỏi AI" pane: what the assistant sees, the conversation, quick questions, input and AI settings. */
+#paneAi{display:flex;flex-direction:column;height:100%;gap:10px;padding-bottom:12px}
+.ai-ctx{flex:none;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2);background:var(--panel-2);border-radius:8px;padding:7px 10px;min-width:0}
+.ai-ctx svg{width:16px;height:16px;flex:none;color:var(--green-h)}
+.ai-ctx span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ai-ctx b{color:var(--ink)}
+.ai-log{flex:1 1 auto;min-height:140px;overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:10px;padding-right:2px}
+.msg{display:flex;gap:8px;max-width:100%}
+.msg .av{width:28px;height:28px;border-radius:50%;background:#4a6b3a;display:grid;place-items:center;flex:none}
+.msg .av i{width:22px;height:22px;background-size:100% 100%}
+.msg .bub{border-radius:12px;padding:8px 11px;font-size:14px;line-height:1.5;min-width:0;overflow-wrap:anywhere}
+.msg.bot .bub{background:#f1f0ee;color:#262522;border-top-left-radius:4px}
+.msg.me{flex-direction:column;align-items:flex-end}
+.msg.me .bub{background:var(--green);color:#fff;border-bottom-right-radius:4px;max-width:88%;white-space:pre-wrap}
+.msg small{display:block;font-size:11px;color:var(--muted);margin-top:3px}
+.msg.bot .bub small{color:#7a7771;margin-top:6px}
+.msg .bub p{margin:0 0 6px}
+.msg .bub p:last-of-type{margin-bottom:0}
+.msg .bub ul,.msg .bub ol{margin:2px 0 6px;padding-left:18px}
+.msg .bub code{background:#e0ded9;border-radius:4px;padding:0 4px;font-size:13px}
+.msg .bub .err{color:#b3261e;font-weight:700;font-size:12.5px}
+.msg .dots b{background:#7a7771}
+.mvl{border:0;background:#dfe9d3;color:#2c4a1a;font:inherit;font-weight:800;border-radius:4px;padding:0 4px;cursor:pointer}
+.mvl:hover{background:#c6dcaf}
+.ai-quick{flex:none;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.ai-quick::-webkit-scrollbar{display:none}
+.ai-quick button{flex:none;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink-2);border-radius:999px;padding:6px 11px;font-size:12.5px;font-weight:700;white-space:nowrap}
+.ai-quick button:hover{background:var(--raise);color:var(--ink)}
+.ai-form{flex:none;display:flex;gap:6px;align-items:flex-end}
+.ai-form textarea{flex:1;min-width:0;resize:none;border:1px solid var(--line-2);background:var(--deep);color:var(--ink);border-radius:10px;padding:9px 11px;font:inherit;font-size:14.5px;line-height:1.4;max-height:120px}
+.ai-form textarea:focus{outline:none;border-color:var(--green)}
+.ai-form .btn{width:46px;height:41px;padding:0;flex:none}
+.ai-form .btn svg{width:20px;height:20px}
+.ai-form .btn.stop{background:var(--raise);box-shadow:inset 0 -3px 0 rgba(0,0,0,.28)}
+.ai-set{flex:none}
+.fld{display:grid;gap:4px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.fld input{border:1px solid var(--line-2);background:var(--deep);color:var(--ink);border-radius:8px;padding:8px 10px;font:inherit;font-size:14px;font-weight:500}
+.fld input:focus{outline:none;border-color:var(--green)}
+.ai-set .note a{color:var(--green-h)}
+
+/* phones and tablets, portrait */
+@media (max-width:979px) and (min-height:561px), (max-width:599px){
+  #paneAi{height:auto}
+  .ai-log{max-height:52vh}
+  .ai-form textarea{font-size:16px}
+}

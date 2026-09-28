@@ -17,11 +17,7 @@ function coachHtml() {
   if (!S.started) {
     return wrap(`<div class="bt">Chào bạn!</div><p>Chọn đối thủ và chế độ ở tab <b>Đối thủ</b>, rồi bấm <b>Chơi</b>. ${f.analysis ? 'Mình sẽ nhận xét từng nước đi của bạn.' : ''}</p><div class="ba"><button type="button" class="go" data-act="tab" data-tab="bots">Chọn đối thủ</button></div>`);
   }
-  if (isOver()) {
-    const r = S.result;
-    const t = r.winner == null ? 'Ván cờ hòa' : r.winner === S.userColor ? 'Bạn thắng!' : `${esc(bot().name)} thắng`;
-    return wrap(`<div class="bt">${t}</div><p>${esc(r.reason)}. ${Object.keys(S.review).length < S.hist.length ? 'Bấm <b>Chấm điểm</b> để xem đánh giá từng nước.' : 'Dùng các nút mũi tên để xem lại ván cờ.'}</p><div class="ba">${Object.keys(S.review).length < S.hist.length ? '<button type="button" class="go" data-act="postreview">Chấm điểm ván đấu</button>' : ''}<button type="button" data-act="summary">Xem tổng kết</button><button type="button" data-act="new">Ván mới</button></div>`);
-  }
+  if (isOver()) return wrap(reviewHtml());
   if (!f.analysis) return wrap(`<div class="bt">Chế độ Thử thách</div><p>Không có trợ giúp trong ván. Sau khi hết ván, bạn có thể chấm điểm cả ván đấu.</p>`);
   if (S.botCoachPly && S.botCoachPly === S.hist.length && userTurn()) {
     const rv = S.review[S.botCoachPly];
@@ -50,6 +46,48 @@ function coachHtml() {
   if (userTurn() && S.hist.length === 0) return wrap(`<div class="bt">Đến lượt bạn</div><p>Đi nước đầu tiên. Gợi ý: chiếm trung tâm với e4 hoặc d4.</p>`);
   if (!userTurn()) return wrap(`<div class="bt">${esc(bot().name)} đang nghĩ…</div><p>Trong lúc chờ, bạn có thể vẽ mũi tên bằng chuột phải để lên kế hoạch.</p>`);
   return wrap(`<div class="bt">Đến lượt bạn</div><p>Kiểm tra trước khi đi: chiếu, ăn quân, đe dọa, của cả hai bên.</p>`);
+}
+/* After the game: what happened on the move being viewed, what was better, and the best move from here. */
+const sideVn = (c) => (c === 'w' ? 'Trắng' : 'Đen') + (c === S.userColor ? ' (bạn)' : '');
+const moveLabel = (p) => `${Math.ceil(p / 2)}${p % 2 ? '.' : '…'}`;
+function reviewHtml() {
+  const n = S.hist.length, vp = viewPly();
+  const reviewed = Object.keys(S.review).length >= n;
+  const out = [];
+  if (vp === n) {
+    const r = S.result;
+    const t = r.winner == null ? 'Ván cờ hòa' : r.winner === S.userColor ? 'Bạn thắng!' : `${esc(bot().name)} thắng`;
+    out.push(`<div class="bt">${t}</div><p>${esc(r.reason)}. ${reviewed ? 'Dùng các nút mũi tên để xem lại từng nước; mũi tên xanh là nước tốt nhất ở mỗi thế.' : 'Bấm <b>Chấm điểm</b> để xem đánh giá từng nước.'}</p>`);
+  } else if (vp === 0) {
+    out.push('<div class="bt">Thế cờ ban đầu</div>');
+  } else {
+    const rec = S.hist[vp - 1], rv = S.review[vp];
+    if (rv) {
+      out.push(`<div class="bt">${badgeSvg(rv.cls, 22)}${moveLabel(vp)} ${esc(rv.title)}</div><p>${esc(rv.text)}</p>`);
+      if (rv.bestUci && rv.bestUci !== rec.uci && !['book', 'forced'].includes(rv.cls) && rv.bestSan) {
+        out.push(`<p class="line">Tốt nhất lúc đó: <b>${esc(rv.bestSan)}</b>${BAD.has(rv.cls) && rv.line ? ` · ${esc(rv.line)}` : ''}</p>`);
+      }
+    } else out.push(`<div class="bt">${moveLabel(vp)} ${esc(rec.san)}</div><p>Nước này chưa được chấm điểm.</p>`);
+  }
+  const fen = fenAtPly(vp);
+  const e = S.bestArrow && cache.get(posKey(fen));
+  const l = e && e.lines[0];
+  if (l && l.pv && l.pv[0] && (e.viewed || e.reviewed || l.depth >= 10)) {
+    const stm = fen.split(' ')[1];
+    const cp = scoreCp(l.score);
+    const line = pvSan(fen, l.pv, 6).split(' ');
+    out.push(`<p class="line">Nước tốt nhất tiếp theo cho ${sideVn(stm)}: <b>${esc(line[0])}</b> (${fmtCp(stm === 'w' ? cp : -cp)}) · ${esc(line.slice(1).join(' '))}</p>`);
+  } else if (S.bestArrow && new Chess(fen).moves().length) {
+    out.push('<p class="line">Đang tìm nước tốt nhất…</p>');
+  }
+  const btns = [];
+  if (!reviewed) btns.push('<button type="button" class="go" data-act="postreview">Chấm điểm ván đấu</button>');
+  if (vp > 0) btns.push('<button type="button" data-cmd="prev" aria-label="Nước trước">◀</button>');
+  if (vp < n) btns.push('<button type="button" data-cmd="next" aria-label="Nước sau">▶</button>');
+  if (vp > 0 && S.review[vp] && S.review[vp].bestUci !== S.hist[vp - 1].uci && !['book', 'forced'].includes(S.review[vp].cls)) btns.push(`<button type="button" data-act="best" data-p="${vp}">Xem nước tốt nhất</button>`);
+  btns.push('<button type="button" data-act="tab" data-tab="ai">Hỏi AI</button>');
+  if (vp === n) btns.push('<button type="button" data-act="summary">Xem tổng kết</button><button type="button" data-act="new">Ván mới</button>');
+  return out.join('') + `<div class="ba">${btns.join('')}</div>`;
 }
 function hintBoxHtml() {
   if (!S.hintOn || !userTurn() || S.view != null) return '';

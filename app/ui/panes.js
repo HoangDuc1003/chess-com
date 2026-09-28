@@ -159,7 +159,8 @@ export function renderBots() {
       <div class="opt"><div class="lab">Bàn cờ</div>
         <label class="sw"><input type="checkbox" id="optPremove" ${S.premovePref ? 'checked' : ''}> Cho đi trước (premove) khi máy đang nghĩ</label>
         <label class="sw"><input type="checkbox" id="optAutoQ" ${S.autoQueen ? 'checked' : ''}> Tự động phong Hậu</label>
-        <label class="sw"><input type="checkbox" id="optDots" ${S.showDots ? 'checked' : ''}> Hiện chấm các nước đi hợp lệ</label></div>
+        <label class="sw"><input type="checkbox" id="optDots" ${S.showDots ? 'checked' : ''}> Hiện chấm các nước đi hợp lệ</label>
+        <label class="sw"><input type="checkbox" id="optBest" ${S.bestArrow ? 'checked' : ''}> Hiện nước tốt nhất khi xem lại ván đã xong</label></div>
       <div class="opt"><label class="sw"><input type="checkbox" id="optSound" ${S.sound ? 'checked' : ''}> Âm thanh</label>
         <label class="sw"><input type="checkbox" id="optEval" ${S.evalBarPref ? 'checked' : ''} ${f.evalBar ? '' : 'disabled'}> Thanh đánh giá (chế độ Học tập)</label>
         <label class="sw"><input type="checkbox" id="optPause" ${S.pausePref ? 'checked' : ''} ${f.pause ? '' : 'disabled'}> Dừng lại khi tôi đi sai (chế độ Học tập)</label>
