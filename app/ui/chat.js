@@ -100,7 +100,7 @@ function renderLast() {
 function renderSettings() {
   const p = ai.provider;
   $('#aiProv').textContent = PROVIDERS[p].vn + (p !== 'local' && !ai.keys[p] ? ' · chưa có key' : '');
-  const who = p === 'gemini' ? 'Google' : 'Anthropic';
+  const who = p === 'gemini' ? 'Google' : p === 'nvidia' ? 'NVIDIA (qua máy chủ của trang, không lưu lại)' : 'Anthropic';
   $('#aiOpts').innerHTML = `<div class="segs">${Object.entries(PROVIDERS).map(([id, x]) => `<button type="button" data-ai="prov" data-v="${id}" aria-pressed="${p === id}">${x.short}</button>`).join('')}</div>`
     + (p === 'local'
       ? '<p class="note">Trả lời tức thì bằng Stockfish, không cần mạng hay tài khoản. Hiểu các câu hỏi thường gặp: nước tốt nhất, ai đang hơn, vì sao nước vừa rồi sai, quân bị đe dọa, khai cuộc, kế hoạch, luật.</p>'

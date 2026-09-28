@@ -4,6 +4,7 @@
 export const PROVIDERS = {
   local: { vn: 'Stockfish (offline)', short: 'Offline' },
   gemini: { vn: 'Google Gemini', short: 'Gemini', model: 'gemini-flash-latest', keyUrl: 'https://aistudio.google.com/apikey', keyHint: 'Có gói miễn phí' },
+  nvidia: { vn: 'NVIDIA (build.nvidia.com)', short: 'NVIDIA', model: 'deepseek-ai/deepseek-v4.1-flash', keyUrl: 'https://build.nvidia.com', keyHint: 'Có credit miễn phí khi đăng ký' },
   claude: { vn: 'Anthropic Claude', short: 'Claude', model: 'claude-haiku-4-5-20251001', keyUrl: 'https://console.anthropic.com/settings/keys', keyHint: 'Trả phí theo lượt dùng' },
 };
 
@@ -102,6 +103,13 @@ async function* streamOnce({ provider, key, model, system, messages, signal }) {
         },
         body: JSON.stringify({ model, max_tokens: 1024, system, stream: true, messages: messages.map((m) => ({ role: m.role, content: m.text })) }),
       });
+    } else if (provider === 'nvidia') {
+      // Through the app's own /api/nvidia function: NVIDIA's API cannot be called from a web page directly.
+      res = await fetch('api/nvidia', {
+        method: 'POST', signal,
+        headers: { 'content-type': 'application/json', 'x-nvidia-key': key },
+        body: JSON.stringify({ model, temperature: 0.4, max_tokens: 1024, messages: [{ role: 'system', content: system }, ...messages.map((m) => ({ role: m.role, content: m.text }))] }),
+      });
     } else throw new ChatError('Chưa chọn AI.');
   } catch (e) {
     if (e.name === 'AbortError' || e instanceof ChatError) throw e;
@@ -109,7 +117,11 @@ async function* streamOnce({ provider, key, model, system, messages, signal }) {
   }
   if (!res.ok) throw await failure(res, provider, model);
   for await (const ev of sse(res)) {
-    if (provider === 'gemini') {
+    if (provider === 'nvidia') {
+      if (ev.error) throw new ChatError(ev.error.message || 'Lỗi từ NVIDIA');
+      const d = ev.choices && ev.choices[0] && ev.choices[0].delta;
+      if (d && d.content) yield d.content;
+    } else if (provider === 'gemini') {
       if (ev.error) throw new ChatError(ev.error.message || 'Lỗi từ Gemini');
       const parts = (ev.candidates && ev.candidates[0] && ev.candidates[0].content && ev.candidates[0].content.parts) || [];
       const text = parts.filter((p) => !p.thought).map((p) => p.text || '').join('');

@@ -37,7 +37,7 @@
 - **Puzzles:** 5,706 real puzzles from the lichess database (mates, forks, pins, sacrifices, endgames…), filtered by theme and difficulty, with a personal puzzle rating that adjusts after each puzzle.
 - **Mistake Dictionary:** 25 lessons on opening traps, tactical errors, mating patterns and endgames, each with a move-by-move simulation checked by Stockfish.
 - **Game Review With Best Moves:** Accuracy and a move-class table at the end of every game. Step through the finished game and each position shows what the move was worth, what was better, and a green arrow for the engine's best move from there. The board stays on the move you are studying.
-- **AI Chat (Hỏi AI):** Ask about the position on the board, including old positions while reviewing. A built-in Stockfish assistant answers instantly and offline (best move, who is better, why a move was bad, threats, opening, plan, rules). Add your own Google Gemini (free tier) or Anthropic Claude key to ask anything in your own words; answers stream in, and moves in them light up on the board when you hover or tap.
+- **AI Chat (Hỏi AI):** Ask about the position on the board, including old positions while reviewing. A built-in Stockfish assistant answers instantly and offline (best move, who is better, why a move was bad, threats, opening, plan, rules). Add your own Google Gemini (free tier), NVIDIA (build.nvidia.com) or Anthropic Claude key to ask anything in your own words; answers stream in, and moves in them light up on the board when you hover or tap.
 - **Stats:** Wins, draws and losses, accuracy, results per bot and a puzzle rating chart. Bots you have beaten get a ✓.
 
 ### Everywhere 📱
@@ -134,6 +134,7 @@ The chat always describes the position on screen to the assistant: FEN, an ASCII
 |-----------|----------------|
 | **Stockfish (offline, default)** | Recognises common questions and answers instantly from the engine lines and the app's own data. No network, no account. |
 | **Google Gemini** / **Anthropic Claude** | Your own API key, stored only in your browser. The question and position go straight from the browser to the provider and the answer is streamed back. If the call fails, the offline assistant answers instead. |
+| **NVIDIA** (build.nvidia.com, e.g. DeepSeek) | Same, but through the small Vercel function `api/nvidia.js`, because NVIDIA's API cannot be called from a web page. The key is forwarded for that request only and never stored. |
 
 In Challenge mode the assistant gives no moves or evaluations until the game is over.
 
@@ -227,6 +228,7 @@ chess-com/
 ├── lib/chess.js                # Rules and move generation
 ├── fonts/, icons/              # Be Vietnam Pro (Vietnamese subset), app icons
 ├── sw.js, manifest.webmanifest # Offline cache and install as an app (PWA)
+├── api/nvidia.js               # Vercel function that forwards chat requests to NVIDIA
 ├── vercel.json                 # COOP/COEP headers for threads, cache rules
 ├── tools/                      # Data builders, content checks, local server
 └── images/                     # README screenshots
