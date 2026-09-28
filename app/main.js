@@ -22,6 +22,14 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const uciObj = (u) => { const o = { from: u.slice(0, 2), to: u.slice(2, 4) }; if (u.length > 4) o.promotion = u[4]; return o; };
 const posKey = (fen) => fen.split(' ').slice(0, 4).join(' ');
 const THREADS = Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 2) - 1));
+/* Time controls (minutes | increment in seconds), grouped like the big sites. */
+const TCS = {
+  none: { vn: 'Không giới hạn' },
+  '1+0': { vn: '1 phút', base: 60e3, inc: 0 }, '1+1': { vn: '1 | 1', base: 60e3, inc: 1e3 }, '2+1': { vn: '2 | 1', base: 120e3, inc: 1e3 },
+  '3+0': { vn: '3 phút', base: 180e3, inc: 0 }, '3+2': { vn: '3 | 2', base: 180e3, inc: 2e3 }, '5+0': { vn: '5 phút', base: 300e3, inc: 0 },
+  '10+0': { vn: '10 phút', base: 600e3, inc: 0 }, '15+10': { vn: '15 | 10', base: 900e3, inc: 10e3 }, '30+0': { vn: '30 phút', base: 1800e3, inc: 0 },
+};
+const TC_CATS = [['Bullet', '#e6b33a', ['1+0', '1+1', '2+1']], ['Blitz', '#f0c85a', ['3+0', '3+2', '5+0']], ['Rapid', '#7fb04a', ['10+0', '15+10', '30+0']]];
 const BOARD_THEMES = [['green', 'Xanh lá', '#ebecd0', '#739552'], ['brown', 'Nâu gỗ', '#f0d9b5', '#b58863'], ['blue', 'Xanh biển', '#dee3e6', '#8ca2ad'], ['slate', 'Đá xám', '#dcdcd6', '#8a8f8a']];
 function buzz(pattern) { if (!S.haptics || !navigator.vibrate) return; try { navigator.vibrate(pattern); } catch {} }
 let toastTimer = 0;
@@ -54,6 +62,7 @@ const S = {
   postReview: false,
   evalWhite: 20,
   games: [], gameId: 0, gameBot: null, navMini: false,
+  tc: 'none', clock: null, flagged: null, premovePref: true, autoQueen: false, showDots: true,
 };
 const cache = new Map();
 const need = [];
@@ -91,6 +100,8 @@ function snapshot() {
     pzRating: S.pzRating, pzGames: S.pzGames, pzSolved: S.pzSolved, pzStreak: S.pzStreak, pzBest: S.pzBest,
     pzChip: S.pzChip, pzLevel: S.pzLevel, pzSeen: S.pzSeen.slice(-400), pzHist: S.pzHist.slice(-30),
     games: S.games.slice(-100), gameId: S.gameId, gameBot: S.gameBot, navMini: S.navMini,
+    tc: S.tc, clock: S.clock ? { ...S.clock, w: clockLeft('w'), b: clockLeft('b') } : null, flagged: S.flagged,
+    premovePref: S.premovePref, autoQueen: S.autoQueen, showDots: S.showDots,
   };
 }
 function save() { try { localStorage.setItem(STORE, JSON.stringify(snapshot())); } catch {} }
@@ -118,6 +129,10 @@ function restore(d) {
   pick('gameId', (v) => Number.isFinite(v) && v >= 0);
   pick('gameBot', (v) => v && typeof v === 'object' && typeof v.name === 'string');
   pick('navMini', (v) => typeof v === 'boolean');
+  pick('tc', (v) => !!TCS[v]);
+  pick('clock', (v) => v && Number.isFinite(v.w) && Number.isFinite(v.b) && Number.isFinite(v.base) && Number.isFinite(v.inc));
+  pick('flagged', (v) => v === 'w' || v === 'b');
+  for (const k of ['premovePref', 'autoQueen', 'showDots']) pick(k, (v) => typeof v === 'boolean');
   if (Array.isArray(d.moves)) {
     for (const u of d.moves) {
       try { pushMove(u); } catch { break; }
@@ -138,7 +153,11 @@ function pushMove(uci) {
   return rec;
 }
 function applyMove(uci, animate) {
+  const mover = S.game.turn();
+  const timed = S.clock && clk.side === mover;
+  const left = timed ? clockLeft(mover) : 0;
   const rec = pushMove(uci);
+  if (timed) { S.clock[mover] = left + S.clock.inc; clk = { side: null, since: 0 }; }
   S.view = null;
   S.showBest = null;
   const f = rec.flags;
@@ -152,6 +171,10 @@ function checkResult(quiet) {
   const g = S.game;
   let r = null;
   if (S.resigned) r = { winner: botColor(), reason: 'Bạn đã đầu hàng' };
+  else if (S.flagged) {
+    const w = S.flagged === 'w' ? 'b' : 'w';
+    r = canMate(g, w) ? { winner: w, reason: S.flagged === S.userColor ? 'Bạn hết giờ' : 'Máy hết giờ' } : { winner: null, reason: 'Hết giờ, nhưng bên kia không đủ quân để chiếu hết' };
+  }
   else if (g.isCheckmate()) r = { winner: g.turn() === 'w' ? 'b' : 'w', reason: 'Chiếu hết' };
   else if (g.isStalemate()) r = { winner: null, reason: 'Hòa pat' };
   else if (g.isInsufficientMaterial()) r = { winner: null, reason: 'Không đủ quân để chiếu hết' };
@@ -159,7 +182,78 @@ function checkResult(quiet) {
   else if (g.isDrawByFiftyMoves()) r = { winner: null, reason: 'Luật 50 nước' };
   const fresh = r && !S.result;
   S.result = r;
+  if (r) board.cancelPremoves();
   if (fresh && !quiet) { S.overDismissed = false; sfx('end'); S.hintOn = false; }
+}
+/* Enough material to ever give mate (simplified: a pawn, rook or queen, or two minor pieces). */
+function canMate(g, color) {
+  let minors = 0;
+  for (const row of g.board()) for (const p of row) {
+    if (!p || p.color !== color) continue;
+    if (p.type === 'p' || p.type === 'r' || p.type === 'q') return true;
+    if (p.type === 'n' || p.type === 'b') minors++;
+  }
+  return minors >= 2;
+}
+
+/* ================= clocks ================= */
+let clk = { side: null, since: 0 };
+let clockTimer = 0;
+let lowWarned = false;
+/* A side's clock runs once both sides have made a move; the bot's only while it is actually thinking. */
+function clockRunning() {
+  if (!S.clock || !S.started || isOver() || S.pz || S.paused || S.hist.length < 2) return false;
+  return userTurn() || !!(S.thinking || S.botPending);
+}
+function clockLeft(c) {
+  if (!S.clock) return 0;
+  let v = S.clock[c];
+  if (clk.side === c) v -= performance.now() - clk.since;
+  return Math.max(0, v);
+}
+function syncClock() {
+  const want = clockRunning() ? S.game.turn() : null;
+  if (want !== clk.side) {
+    if (clk.side) S.clock[clk.side] = clockLeft(clk.side);
+    clk = { side: want, since: performance.now() };
+  }
+  if (want && !clockTimer) clockTimer = setInterval(tickClock, 100);
+  if (!want && clockTimer) { clearInterval(clockTimer); clockTimer = 0; }
+  updateClocks();
+}
+const lowTime = () => (S.clock ? Math.min(20e3, S.clock.base * 0.1) : 0);
+function fmtClock(ms) {
+  if (ms < 20e3) { const t = Math.floor(ms / 100); return `0:${String(Math.floor(t / 10)).padStart(2, '0')},${t % 10}`; }
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = String(s % 60).padStart(2, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
+}
+function updateClocks() {
+  document.querySelectorAll('[data-clock]').forEach((el) => {
+    const c = el.dataset.clock, ms = clockLeft(c);
+    const txt = fmtClock(ms);
+    if (el.textContent !== txt) el.textContent = txt;
+    el.classList.toggle('run', clk.side === c);
+    el.classList.toggle('low', ms <= lowTime());
+  });
+}
+function tickClock() {
+  const c = clk.side;
+  if (!c) return;
+  const left = clockLeft(c);
+  updateClocks();
+  if (c === S.userColor && !lowWarned && left <= lowTime()) { lowWarned = true; sfx('lowtime'); }
+  if (left <= 0) flagSide(c);
+}
+function flagSide(c) {
+  S.clock[c] = 0;
+  clk = { side: null, since: 0 };
+  S.flagged = c;
+  if (c === botColor()) { eng.cancel(); S.botPending = null; S.thinking = null; }
+  checkResult(false);
+  drawBoard(null);
+  renderAll();
+  save();
 }
 
 /* ================= engine ================= */
@@ -245,9 +339,11 @@ function runBotMove() {
   const b = bot();
   const fen = S.game.fen();
   const job = { kind: 'move', position: positionCmd(), lines: [] };
+  // With a clock, Stockfish manages its own time (capped by the chosen think time); 250 ms is kept for overhead.
+  const tm = S.clock ? `wtime ${Math.max(50, clockLeft('w') - 250) | 0} btime ${Math.max(50, clockLeft('b') - 250) | 0} winc ${S.clock.inc} binc ${S.clock.inc} ` : '';
   if (b.weak) { job.multipv = Math.min(5, legalCount(fen)); job.go = 'go depth ' + b.weak.depth; job.limited = false; }
-  else if (b.uciElo) { job.limited = true; job.elo = Math.max(1320, Math.min(3190, b.uciElo)); job.fresh = true; job.multipv = 1; job.go = 'go movetime ' + S.movetime; }
-  else { job.limited = false; job.multipv = 1; job.go = 'go movetime ' + (b.ultraMs || S.movetime); }
+  else if (b.uciElo) { job.limited = true; job.elo = Math.max(1320, Math.min(3190, b.uciElo)); job.fresh = true; job.multipv = 1; job.go = `go ${tm}movetime ${S.movetime}`; }
+  else { job.limited = false; job.multipv = 1; job.go = `go ${tm}movetime ${b.ultraMs || S.movetime}`; }
   S.thinking = { depth: 0, nps: 0 };
   let botScore = null;
   job.onInfo = (i) => {
@@ -266,13 +362,15 @@ function runBotMove() {
       const legal = new Chess(fen).moves({ verbose: true }).map((m) => m.from + m.to + (m.promotion || ''));
       uci = humanPick(job.lines, legal, b.weak) || mv;
     }
-    const minThink = b.weak ? 450 + Math.random() * 650 : 0;
+    let minThink = b.weak ? 450 + Math.random() * 650 : 0;
+    if (S.clock) minThink = Math.min(minThink, clockLeft(botColor()) / 40);
     const wait = Math.max(0, minThink - (performance.now() - job.startedAt));
     S.botPending = { uci, fen };
     setTimeout(() => commitBotMove(uci, fen, b.full && botScore), wait);
   };
   job.onCancel = () => { S.thinking = null; };
   eng.run(job);
+  syncClock();
   renderBars();
 }
 
@@ -286,7 +384,20 @@ function commitBotMove(uci, fen, score) {
   S.botCoachPly = null;
   noteOpening();
   renderAll();
+  if (board.premoves.length) {
+    // Let the bot's move show for a moment, then play the premove (if it is still legal).
+    const n = S.hist.length;
+    setTimeout(() => { if (S.hist.length === n) playPremove(); }, 110);
+  }
   schedule();
+}
+function playPremove() {
+  const pm = board.takePremove();
+  if (!pm || !canUserMove()) { board.cancelPremoves(); return false; }
+  const m = S.game.moves({ verbose: true }).find((x) => x.from === pm.from && x.to === pm.to && (!x.promotion || x.promotion === (pm.promotion || 'q')));
+  if (!m) { board.cancelPremoves(); drawBoard(null); return false; }
+  onBoardMove({ from: m.from, to: m.to, promotion: m.promotion }, true);
+  return true;
 }
 
 /* ================= review ================= */
@@ -384,6 +495,8 @@ function onBoardMove(mv, animated) {
 }
 
 function rewindTo(len) {
+  if (S.flagged) { toast('Ván đã hết giờ, không đi lại được'); return; }
+  board.cancelPremoves();
   eng.cancel();
   S.botPending = null;
   S.thinking = null;
@@ -434,6 +547,13 @@ function newGame() {
   S.view = null; S.showBest = null; S.coachPly = null; S.botCoachPly = null;
   S.gameId = Date.now();
   S.gameBot = botStamp(bot());
+  const tc = TCS[S.tc];
+  S.clock = tc && tc.base ? { w: tc.base, b: tc.base, base: tc.base, inc: tc.inc, tc: S.tc } : null;
+  S.flagged = null;
+  clk = { side: null, since: 0 };
+  lowWarned = false;
+  board.cancelPremoves();
+  sfx('start');
   board.setOrientation(S.orientation);
   board.clearAnnotations();
   S.tab = 'play';
@@ -475,6 +595,10 @@ const board = new BoardView($('#board'), {
   onBlocked: () => { if (!S.pz && S.view != null) go(S.hist.length); },
   onIllegal: () => sfx('illegal'),
   onInteract: () => unlockAudio(),
+  canPremove: () => !S.pz && S.premovePref && S.started && !isOver() && S.view == null && !userTurn(),
+  onPremove: (list) => { if (list.length) sfx('premove'); },
+  autoQueen: () => S.autoQueen,
+  showTargets: () => S.showDots,
 });
 function drawBoard(anim) {
   if (S.pz) { pzDraw(anim); return; }
@@ -583,7 +707,7 @@ function barHtml(color) {
     const turn = S.started && !isOver() && userTurn() && S.view == null;
     return `<div class="ava" style="background:#5d5a55"><i class="${S.userColor}p"></i></div>
       <div class="who"><div class="nm"><b>Bạn</b>${S.hintsUsed ? `<span class="rt">· ${S.hintsUsed} gợi ý</span>` : ''}</div><div class="caps">${capsHtml(color)}</div></div>
-      ${turn ? '<span class="chip on">Lượt bạn</span>' : ''}`;
+      ${turn && !S.clock ? '<span class="chip on">Lượt bạn</span>' : ''}${clockHtml(color)}`;
   }
   const b = bot();
   let chip = '';
@@ -595,7 +719,12 @@ function barHtml(color) {
     chip = `<span class="chip think"><span class="dots"><b></b><b></b><b></b></span>${t.depth ? 'độ sâu ' + t.depth + nps : 'đang nghĩ'}</span>`;
   } else if (S.paused) chip = '<span class="chip">Đang chờ bạn</span>';
   return `<div class="ava" style="background:${b.tone}"><i class="${b.icon}"></i></div>
-    <div class="who"><div class="nm"><b>${esc(b.name)}</b><span class="rt">(${eloText(b)})</span></div><div class="caps">${capsHtml(color)}</div></div>${chip}`;
+    <div class="who"><div class="nm"><b>${esc(b.name)}</b><span class="rt">(${eloText(b)})</span></div><div class="caps">${capsHtml(color)}</div></div>${chip}${clockHtml(color)}`;
+}
+function clockHtml(color) {
+  if (!S.clock) return '';
+  const ms = clockLeft(color);
+  return `<span class="clock${clk.side === color ? ' run' : ''}${ms <= lowTime() ? ' low' : ''}" data-clock="${color}" role="timer" aria-label="Đồng hồ ${color === S.userColor ? 'của bạn' : 'của máy'}">${fmtClock(ms)}</span>`;
 }
 function pzBarHtml(top) {
   const pz = S.pz;
@@ -1004,10 +1133,19 @@ function renderBots() {
     <div class="seg">${[['w', 'Trắng', 'wk'], ['r', 'Ngẫu nhiên', 'wn'], ['b', 'Đen', 'bk']].map(([v, t, ic]) => `<button type="button" data-act="side" data-v="${v}" aria-pressed="${S.sideChoice === v}"><i class="k ${ic}"></i>${t}</button>`).join('')}</div>
     <div class="lab">Chế độ</div>
     <div class="seg">${Object.entries(MODES).map(([k, m]) => `<button type="button" data-act="mode" data-v="${k}" aria-pressed="${S.mode === k}">${m.vn}<small>${m.desc}</small></button>`).join('')}</div>
-    <button type="button" class="btn go big" data-act="new">Chơi</button>
+    <div class="lab">Thể thức <small>${S.tc === 'none' ? 'không tính giờ' : 'áp dụng từ ván mới'}</small></div>
+    <div class="tcs">
+      <button type="button" class="tc-none" data-act="tc" data-v="none" aria-pressed="${S.tc === 'none'}">Không giới hạn thời gian</button>
+      ${TC_CATS.map(([cat, col, ids]) => `<div class="tcrow"><span style="color:${col}">${cat}</span>${ids.map((id) => `<button type="button" data-act="tc" data-v="${id}" aria-pressed="${S.tc === id}">${TCS[id].vn}</button>`).join('')}</div>`).join('')}
+    </div>
+    <button type="button" class="btn go big" data-act="new">Chơi${S.tc !== 'none' ? ` <small class="tcb">${TCS[S.tc].vn}</small>` : ''}</button>
     <details class="adv"><summary>Tùy chọn khác</summary>
       <div class="opt"><div class="lab">Thời gian nghĩ của máy <small>${b.weak ? 'bot dưới 1320 tự điều chỉnh' : b.ultraMs ? 'Siêu cấp: 10 giây' : ''}</small></div>
         <div class="segs">${[[500, '0,5 s'], [1000, '1 s'], [2000, '2 s'], [5000, '5 s']].map(([v, t]) => `<button type="button" data-act="time" data-v="${v}" aria-pressed="${S.movetime === v}" ${b.weak || b.ultraMs ? 'disabled' : ''}>${t}</button>`).join('')}</div></div>
+      <div class="opt"><div class="lab">Bàn cờ</div>
+        <label class="sw"><input type="checkbox" id="optPremove" ${S.premovePref ? 'checked' : ''}> Cho đi trước (premove) khi máy đang nghĩ</label>
+        <label class="sw"><input type="checkbox" id="optAutoQ" ${S.autoQueen ? 'checked' : ''}> Tự động phong Hậu</label>
+        <label class="sw"><input type="checkbox" id="optDots" ${S.showDots ? 'checked' : ''}> Hiện chấm các nước đi hợp lệ</label></div>
       <div class="opt"><label class="sw"><input type="checkbox" id="optSound" ${S.sound ? 'checked' : ''}> Âm thanh</label>
         <label class="sw"><input type="checkbox" id="optEval" ${S.evalBarPref ? 'checked' : ''} ${f.evalBar ? '' : 'disabled'}> Thanh đánh giá (chế độ Học tập)</label>
         <label class="sw"><input type="checkbox" id="optPause" ${S.pausePref ? 'checked' : ''} ${f.pause ? '' : 'disabled'}> Dừng lại khi tôi đi sai (chế độ Học tập)</label>
@@ -1063,6 +1201,7 @@ function startPuzzle() {
   if (!p) { toast('Không có thế cờ phù hợp với bộ lọc này'); return; }
   unlockAudio();
   eng.cancel();
+  board.cancelPremoves();
   S.hintOn = false;
   const g = new Chess(p.fen);
   let setup;
@@ -1277,6 +1416,7 @@ function renderTabs() {
   document.querySelectorAll('.side-body .pane').forEach((p) => { p.hidden = p.dataset.panel !== S.tab; });
 }
 function renderAll() {
+  syncClock();
   recordGame();
   renderNav();
   renderBars();
@@ -1333,6 +1473,7 @@ function onAct(e) {
     case 'side': S.sideChoice = t.dataset.v; if (!S.hist.length) { S.userColor = S.sideChoice === 'b' ? 'b' : 'w'; S.orientation = S.userColor; board.setOrientation(S.orientation); } renderAll(); break;
     case 'mode': S.mode = t.dataset.v; if (!flags().analysis) { S.hintOn = false; if (eng.is('analysis')) eng.cancel(); } renderAll(); drawBadge(); schedule(); break;
     case 'time': S.movetime = +t.dataset.v; renderAll(); break;
+    case 'tc': S.tc = t.dataset.v; renderAll(); break;
     case 'theme': S.boardTheme = t.dataset.v; document.documentElement.dataset.board = S.boardTheme; renderAll(); break;
     case 'simcont': {
       const fen = fenAtPly(viewPly());
@@ -1369,6 +1510,9 @@ $('#sideBody').addEventListener('input', (e) => {
 $('#sideBody').addEventListener('change', (e) => {
   if (e.target.id === 'optSound') { S.sound = e.target.checked; setSound(S.sound); renderNav(); save(); }
   if (e.target.id === 'optHaptics') { S.haptics = e.target.checked; buzz(20); save(); }
+  if (e.target.id === 'optPremove') { S.premovePref = e.target.checked; if (!S.premovePref) board.cancelPremoves(); save(); }
+  if (e.target.id === 'optAutoQ') { S.autoQueen = e.target.checked; save(); }
+  if (e.target.id === 'optDots') { S.showDots = e.target.checked; board.render(); save(); }
   if (e.target.id === 'optEval') { S.evalBarPref = e.target.checked; renderEval(); save(); }
   if (e.target.id === 'optPause') { S.pausePref = e.target.checked; if (!S.pausePref && S.paused) { S.paused = false; schedule(); } save(); }
 });
@@ -1426,6 +1570,19 @@ document.addEventListener('click', (e) => {
   if (b) { runCmd(b.dataset.cmd); return; }
   if (!e.target.closest('#moreMenu')) closeMore();
 });
+/* Mouse wheel over the board steps through the moves (down = forward). */
+{
+  let acc = 0, last = 0;
+  $('#boardWrap').addEventListener('wheel', (e) => {
+    if (S.pz || isPhone() || !S.hist.length || e.ctrlKey) return;
+    e.preventDefault();
+    const now = performance.now();
+    if (now - last > 350) acc = 0;
+    last = now;
+    acc += e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY;
+    while (Math.abs(acc) >= 60) { const d = Math.sign(acc); acc -= d * 60; go(viewPly() + d); }
+  }, { passive: false });
+}
 $('#board').addEventListener('pointerdown', (e) => {
   if (e.pointerType !== 'touch') return;
   let seen = false;
@@ -1493,7 +1650,7 @@ function recordGame() {
   const rec = {
     id: S.gameId, t: Date.now(), b: gb.id, nm: gb.name, e: gb.e, c: S.userColor,
     r: r.winner == null ? 'd' : r.winner === S.userColor ? 'w' : 'l', why: r.reason, n: S.hist.length,
-    acc: acc == null ? null : Math.round(acc * 10) / 10, m: S.mode, h: S.hintsUsed,
+    acc: acc == null ? null : Math.round(acc * 10) / 10, m: S.mode, h: S.hintsUsed, tc: S.clock ? S.clock.tc : null,
   };
   const i = S.games.findIndex((g) => g.id === rec.id);
   if (i < 0) { S.games.push(rec); if (S.games.length > 100) S.games = S.games.slice(-100); return; }
@@ -1662,7 +1819,7 @@ function statsHtml() {
     const recent = G.slice(-12).reverse().map((g) => {
       const dt = new Date(g.t);
       const when = `${dt.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} ${dt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
-      return `<div class="gl-r"><span class="res ${g.r}">${RES[g.r]}</span><div class="who3"><b>${esc(g.nm)} <span style="color:var(--muted);font-weight:600">${esc(g.e)}</span></b><small>${g.c === 'w' ? 'Cầm Trắng' : 'Cầm Đen'} · ${Math.ceil(g.n / 2)} nước · ${esc(g.why)} · ${when}</small></div><div class="ac">${g.acc == null ? '—' : fmt1(g.acc)}<small>chính xác</small></div></div>`;
+      return `<div class="gl-r"><span class="res ${g.r}">${RES[g.r]}</span><div class="who3"><b>${esc(g.nm)} <span style="color:var(--muted);font-weight:600">${esc(g.e)}</span></b><small>${g.tc && TCS[g.tc] ? TCS[g.tc].vn + ' · ' : ''}${g.c === 'w' ? 'Cầm Trắng' : 'Cầm Đen'} · ${Math.ceil(g.n / 2)} nước · ${esc(g.why)} · ${when}</small></div><div class="ac">${g.acc == null ? '—' : fmt1(g.acc)}<small>chính xác</small></div></div>`;
     }).join('');
     h += `<h3>Ván gần đây</h3><div class="gl">${recent}</div>`;
     h += '<p class="fine">Độ chính xác chỉ có ở ván đã được chấm điểm (chế độ Học tập, Thân thiện, hoặc bấm Chấm điểm sau ván Thử thách). Thống kê lưu trong trình duyệt này.</p>';
@@ -1685,7 +1842,11 @@ function helpHtml() {
     </div>
     <h3>Chuột và cảm ứng</h3>
     <p>Kéo thả quân, hoặc bấm quân rồi bấm ô muốn đi. Thả sai chỗ thì quân tự về chỗ cũ.</p>
-    <p>Chuột phải kéo để vẽ mũi tên, chuột phải bấm để đánh dấu ô, bấm chuột trái lên bàn cờ để xóa. Trên điện thoại: chạm giữ một ô rồi kéo để vẽ mũi tên, chạm một lần để xóa.</p>
+    <p>Chuột phải kéo để vẽ mũi tên, chuột phải bấm để đánh dấu ô, bấm chuột trái lên bàn cờ để xóa. Giữ <kbd>Shift</kbd> (xanh lá), <kbd>Ctrl</kbd> (đỏ) hoặc <kbd>Alt</kbd> (xanh dương) để đổi màu. Trên điện thoại: chạm giữ một ô rồi kéo để vẽ mũi tên, chạm một lần để xóa.</p>
+    <p>Lăn chuột trên bàn cờ để xem lại từng nước.</p>
+    <h3>Đi trước (premove) và đồng hồ</h3>
+    <p>Khi máy đang nghĩ, bạn vẫn đi quân được: nước đó được tô đỏ và tự đi ngay khi máy đi xong (nếu còn hợp lệ). Có thể xếp nhiều nước liên tiếp. Bấm chuột phải để hủy.</p>
+    <p>Chọn thể thức Bullet, Blitz hoặc Rapid ở mục Đối thủ để chơi có đồng hồ. Đồng hồ chạy sau nước đầu tiên của mỗi bên; hết giờ là thua, trừ khi bên kia không đủ quân để chiếu hết.</p>
     <h3>Ký hiệu chấm điểm</h3>
     <div class="legend">${legend}</div>
     <p class="note">Mỗi nước được so với nước tốt nhất của Stockfish theo xác suất thắng. Thiên tài là thí quân chính xác; Nước hay là nước duy nhất giữ được thế cờ.</p>

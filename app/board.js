@@ -65,6 +65,8 @@ export class BoardView {
     this.drag = null;
     this.rc = null;
     this.hover = null;
+    this.premoves = [];
+    this.selMode = 'move';
     root.classList.add('cb');
     root.innerHTML = '<div class="cb-sq"></div><svg class="cb-arrows" viewBox="0 0 8 8" aria-hidden="true"></svg><div class="cb-badge" hidden></div><div class="cb-promo" hidden></div>';
     this.sqEl = root.querySelector('.cb-sq');
@@ -98,12 +100,50 @@ export class BoardView {
     this.checkSq = check;
     this.selected = null;
     this.targets.clear();
+    const d = this.drag;
+    if (d) {
+      // The position changed under a dragged piece (the opponent moved): keep dragging with fresh targets.
+      const mode = this._mode();
+      const p = this._view().get(d.from);
+      if (mode && p && p[0] === this.opts.myColor()) this._select(d.from, mode, true);
+      else this._dropDrag();
+    }
     this.render();
     if (animate) this.animate(animate.from, animate.to);
   }
   setOrientation(o) { this.orientation = o; this.render(); this.renderOverlays(); }
   setArrows(list) { this.sysArrows = list || []; this.renderOverlays(); }
   setBadge(b) { this.badge = b; this.renderOverlays(); }
+  /* Premoves: queued moves made during the opponent's turn, shown on a virtual board. */
+  setPremoves(list) {
+    this.premoves = list || [];
+    if (this.selMode === 'pre') { this.selected = null; this.targets.clear(); }
+    this.render();
+  }
+  cancelPremoves() {
+    if (!this.premoves.length && this.selMode !== 'pre') return;
+    this.premoves = [];
+    if (this.selMode === 'pre') { this.selected = null; this.targets.clear(); }
+    this.render();
+    this.opts.onPremove && this.opts.onPremove(this.premoves);
+  }
+  takePremove() { return this.premoves.shift() || null; }
+  _view() {
+    if (!this.premoves.length) return this.pieces;
+    const m = new Map(this.pieces);
+    for (const pm of this.premoves) {
+      const p = m.get(pm.from);
+      if (!p) continue;
+      m.delete(pm.from);
+      if (p[1] === 'k' && Math.abs(FILES.indexOf(pm.from[0]) - FILES.indexOf(pm.to[0])) === 2) {
+        const r = pm.to[1], ks = pm.to[0] === 'g';
+        const rp = m.get((ks ? 'h' : 'a') + r);
+        if (rp) { m.delete((ks ? 'h' : 'a') + r); m.set((ks ? 'f' : 'd') + r, rp); }
+      }
+      m.set(pm.to, p[1] === 'p' && (pm.to[1] === '8' || pm.to[1] === '1') ? p[0] + (pm.promotion || 'q') : p);
+    }
+    return m;
+  }
   clearAnnotations() {
     if (!this.userArrows.length && !this.userSquares.size) return;
     this.userArrows = []; this.userSquares.clear();
@@ -112,8 +152,11 @@ export class BoardView {
 
   /* ---------- drawing ---------- */
   render() {
-    const pcs = this.pieces;
+    const pcs = this._view();
     const lm = this.lastMove;
+    const pm = new Set(this.premoves.flatMap((m) => [m.from, m.to]));
+    const dots = !this.opts.showTargets || this.opts.showTargets();
+    const mine = this.opts.interactive && this._mode() ? this.opts.myColor() : null;
     let html = '';
     for (let r = 0; r < 8; r++) {
       for (let c = 0; c < 8; c++) {
@@ -125,7 +168,8 @@ export class BoardView {
         if (sq === this.selected) cls.push('sel');
         if (sq === this.checkSq) cls.push('chk');
         if (sq === this.hover) cls.push('hov');
-        const t = this.targets.get(sq);
+        if (pm.has(sq)) cls.push('pm');
+        const t = dots && this.targets.get(sq);
         if (t) cls.push(t.captured || pcs.get(sq) ? 'tgt cap' : 'tgt');
         const mark = this.userSquares.get(sq);
         let inner = mark ? `<i class="mk" style="background:${SQUARE_MARK[mark]}"></i>` : '';
@@ -134,7 +178,7 @@ export class BoardView {
           if (r === 7) inner += `<span class="co f">${sq[0]}</span>`;
         }
         const p = pcs.get(sq);
-        if (p) inner += `<div class="pc ${p}${this.drag && this.drag.from === sq && this.drag.ghost ? ' lift' : ''}"></div>`;
+        if (p) inner += `<div class="pc ${p}${this.drag && this.drag.from === sq && this.drag.ghost ? ' lift' : ''}${mine && p[0] === mine ? ' my' : ''}"></div>`;
         html += `<div class="${cls.join(' ')}" data-sq="${sq}">${inner}</div>`;
       }
     }
@@ -199,28 +243,107 @@ export class BoardView {
 
   /* ---------- interaction ---------- */
   _game() { try { return new Chess(this.fen); } catch { return null; } }
-  _select(sq) {
+  /* 'move' on your turn, 'pre' when a premove is allowed, otherwise null. */
+  _mode() {
+    if (this.opts.canMove && this.opts.canMove()) return 'move';
+    if (this.opts.canPremove && this.opts.canPremove()) return 'pre';
+    return null;
+  }
+  _select(sq, mode = this._mode(), quiet = false) {
     this.selected = sq;
+    this.selMode = mode || 'move';
     this.targets.clear();
-    if (sq) {
+    if (sq && mode === 'move') {
       const g = this._game();
       if (g) for (const m of g.moves({ square: sq, verbose: true })) this.targets.set(m.to, m);
+    } else if (sq && mode === 'pre') {
+      const v = this._view();
+      for (const to of this._premoveTargets(sq, v)) { const q = v.get(to); this.targets.set(to, { to, captured: q && q[0] !== v.get(sq)[0] ? q[1] : null }); }
     }
-    this.render();
+    if (!quiet) this.render();
   }
-  _movable(sq) {
-    const p = this.pieces.get(sq);
-    return p && this.opts.canMove && this.opts.canMove() && p[0] === this.opts.myColor();
+  /* Squares a piece could reach if the board changed in its favour (the usual premove rule). */
+  _premoveTargets(sq, pcs) {
+    const p = pcs.get(sq);
+    if (!p) return [];
+    const color = p[0], type = p[1];
+    const f = FILES.indexOf(sq[0]), r = +sq[1];
+    const out = [];
+    const ok = (nf, nr) => nf >= 0 && nf < 8 && nr >= 1 && nr <= 8;
+    const add = (df, dr) => { if (ok(f + df, r + dr)) out.push(FILES[f + df] + (r + dr)); };
+    const ray = (df, dr) => { for (let k = 1; k < 8 && ok(f + df * k, r + dr * k); k++) out.push(FILES[f + df * k] + (r + dr * k)); };
+    const DIAG = [[1, 1], [1, -1], [-1, 1], [-1, -1]], LINE = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    if (type === 'p') {
+      const dir = color === 'w' ? 1 : -1;
+      add(0, dir); add(-1, dir); add(1, dir);
+      if (r === (color === 'w' ? 2 : 7)) add(0, 2 * dir);
+    } else if (type === 'n') {
+      for (const [a, b] of [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]]) add(a, b);
+    } else if (type === 'b') DIAG.forEach(([a, b]) => ray(a, b));
+    else if (type === 'r') LINE.forEach(([a, b]) => ray(a, b));
+    else if (type === 'q') [...DIAG, ...LINE].forEach(([a, b]) => ray(a, b));
+    else if (type === 'k') {
+      [...DIAG, ...LINE].forEach(([a, b]) => add(a, b));
+      const home = color === 'w' ? '1' : '8';
+      const rights = (this.fen.split(' ')[2] || '-');
+      if (sq === 'e' + home) {
+        const moved = this.premoves.some((m) => m.from === 'e' + home);
+        if (!moved && rights.includes(color === 'w' ? 'K' : 'k') && pcs.get('h' + home) === color + 'r') out.push('g' + home);
+        if (!moved && rights.includes(color === 'w' ? 'Q' : 'q') && pcs.get('a' + home) === color + 'r') out.push('c' + home);
+      }
+    }
+    return out;
+  }
+  _movable(sq, mode = this._mode()) {
+    if (!mode) return false;
+    const p = (mode === 'pre' ? this._view() : this.pieces).get(sq);
+    return !!p && p[0] === this.opts.myColor();
   }
   _tryMove(from, to, animated) {
     const m = this.targets.get(to);
     if (!m) return false;
+    if (this.selMode === 'pre') {
+      const p = this._view().get(from);
+      const promo = p && p[1] === 'p' && (to[1] === '8' || to[1] === '1') ? 'q' : undefined;
+      if (this.premoves.length < 12) this.premoves.push({ from, to, promotion: promo });
+      this.selected = null; this.targets.clear();
+      this.render();
+      this.opts.onPremove && this.opts.onPremove(this.premoves);
+      return true;
+    }
     const g = this._game();
     const all = g.moves({ square: from, verbose: true }).filter((x) => x.to === to);
-    if (all.some((x) => x.promotion)) { this._promo(from, to); return true; }
+    if (all.some((x) => x.promotion)) {
+      if (this.opts.autoQueen && this.opts.autoQueen()) { this.selected = null; this.targets.clear(); this.opts.onMove({ from, to, promotion: 'q' }, animated); return true; }
+      this._promo(from, to);
+      return true;
+    }
     this.selected = null; this.targets.clear();
     this.opts.onMove({ from, to }, animated);
     return true;
+  }
+  /* Lift the piece: it follows the pointer with its centre under the pointer (touch: a bit larger). */
+  _lift(x, y) {
+    const d = this.drag;
+    if (!d || d.ghost) return;
+    const sqSize = this.sqEl.getBoundingClientRect().width / 8;
+    const size = d.touch ? sqSize * 1.5 : sqSize;
+    const g = document.createElement('div');
+    g.className = 'cb-ghost ' + this._view().get(d.from);
+    g.style.width = g.style.height = size + 'px';
+    g.style.transform = `translate(${x - size / 2}px, ${y - size / 2}px)`;
+    document.body.appendChild(g);
+    document.documentElement.classList.add('cb-grabbing');
+    d.ghost = g; d.size = size; d.sqSize = sqSize;
+    this.render();
+  }
+  _dropDrag() {
+    const d = this.drag;
+    if (!d) return;
+    if (d.ghost) d.ghost.remove();
+    document.documentElement.classList.remove('cb-grabbing');
+    this.drag = null;
+    this.hover = null;
   }
   _promo(from, to) {
     const col = this.opts.myColor();
@@ -247,6 +370,7 @@ export class BoardView {
       const sq = this.squareFromPoint(e.clientX, e.clientY);
       if (!sq) return;
       if (e.button === 2) {
+        if (this.premoves.length || (this.selected && this.selMode === 'pre')) { this.cancelPremoves(); e.preventDefault(); return; }
         const color = e.shiftKey ? 'g' : e.altKey ? 'b' : (e.ctrlKey || e.metaKey) ? 'r' : null;
         this.rc = { from: sq, to: sq, color: color || 'o', sqColor: color || 'r', id: e.pointerId };
         try { el.setPointerCapture(e.pointerId); } catch {}
@@ -261,10 +385,7 @@ export class BoardView {
         const lp = { id: e.pointerId, sq, x: e.clientX, y: e.clientY, fired: false };
         lp.timer = setTimeout(() => {
           lp.fired = true;
-          if (this.drag && this.drag.id === lp.id) {
-            if (this.drag.ghost) this.drag.ghost.remove();
-            this.drag = null; this.hover = null;
-          }
+          if (this.drag && this.drag.id === lp.id) this._dropDrag();
           this.selected = null; this.targets.clear();
           this.rc = { from: lp.sq, to: lp.sq, color: 'o', sqColor: 'r', id: lp.id };
           try { el.setPointerCapture(lp.id); } catch {}
@@ -275,21 +396,27 @@ export class BoardView {
       } else {
         this.clearAnnotations();
       }
-      if (!this.opts.canMove || !this.opts.canMove()) {
+      const mode = this._mode();
+      if (!mode) {
         if (this.opts.onBlocked) this.opts.onBlocked(sq);
         return;
       }
-      if (this.selected && sq !== this.selected && !this._movable(sq)) {
-        if (!this._tryMove(this.selected, sq, true)) { this._select(null); }
+      if (this.selected && this.selMode !== mode) this._select(null, mode);
+      if (this.selected && sq !== this.selected && !this._movable(sq, mode)) {
+        if (!this._tryMove(this.selected, sq, true)) { this._select(null, mode); if (mode === 'pre') this.cancelPremoves(); }
         return;
       }
-      if (this._movable(sq)) {
+      if (this._movable(sq, mode)) {
         const was = this.selected === sq;
-        this._select(sq);
-        this.drag = { from: sq, id: e.pointerId, x: e.clientX, y: e.clientY, ghost: null, was };
+        this._select(sq, mode);
+        this.drag = { from: sq, id: e.pointerId, x: e.clientX, y: e.clientY, ghost: null, was, moved: false, touch: e.pointerType === 'touch' };
         try { el.setPointerCapture(e.pointerId); } catch {}
+        if (!this.drag.touch) this._lift(e.clientX, e.clientY);
         e.preventDefault();
-      } else if (this.selected) this._select(null);
+      } else {
+        if (this.selected) this._select(null, mode);
+        if (mode === 'pre' && this.premoves.length) this.cancelPremoves();
+      }
     });
     el.addEventListener('pointermove', (e) => {
       if (this.lp && e.pointerId === this.lp.id && !this.lp.fired && Math.hypot(e.clientX - this.lp.x, e.clientY - this.lp.y) > 8) {
@@ -303,18 +430,14 @@ export class BoardView {
       }
       const d = this.drag;
       if (!d || e.pointerId !== d.id) return;
+      const far = Math.hypot(e.clientX - d.x, e.clientY - d.y);
       if (!d.ghost) {
-        if (Math.hypot(e.clientX - d.x, e.clientY - d.y) < 4) return;
-        const size = this.sqEl.getBoundingClientRect().width / 8;
-        const g = document.createElement('div');
-        g.className = 'cb-ghost ' + this.pieces.get(d.from);
-        g.style.width = g.style.height = size + 'px';
-        document.body.appendChild(g);
-        d.ghost = g; d.size = size;
-        this.render();
+        if (far < 4) return;
+        this._lift(e.clientX, e.clientY);
       }
-      d.ghost.style.transform = `translate(${e.clientX - d.size / 2}px, ${e.clientY - d.size / 2}px)`;
       const over = this.squareFromPoint(e.clientX, e.clientY);
+      if (far > 6 || over !== d.from) d.moved = true;
+      d.ghost.style.transform = `translate(${e.clientX - d.size / 2}px, ${e.clientY - d.size / 2}px)`;
       if (over !== this.hover) {
         const prev = this.hover && this.sqEl.querySelector(`[data-sq="${this.hover}"]`);
         if (prev) prev.classList.remove('hov');
@@ -352,7 +475,14 @@ export class BoardView {
       if (!d || e.pointerId !== d.id) return;
       this.drag = null;
       this.hover = null;
+      document.documentElement.classList.remove('cb-grabbing');
       try { el.releasePointerCapture(e.pointerId); } catch {}
+      if (d.ghost && !d.moved) {
+        // A click: the piece drops back into its square and stays selected (click again to unselect).
+        d.ghost.remove();
+        if (d.was) this._select(null); else this.render();
+        return;
+      }
       if (d.ghost) {
         const to = cancelled ? null : this.squareFromPoint(e.clientX, e.clientY);
         if (to && to !== d.from && this.targets.has(to)) {
@@ -366,6 +496,7 @@ export class BoardView {
         const tx = b.left + (cx / 8) * b.width - d.size / 2;
         const ty = b.top + (cy / 8) * b.height - d.size / 2;
         const ghost = d.ghost;
+        if (d.touch) ghost.style.width = ghost.style.height = d.size + 'px';
         if (to && to !== d.from) this.opts.onIllegal && this.opts.onIllegal();
         if (reduceMotion()) { ghost.remove(); this.render(); return; }
         ghost.style.transition = 'transform .16s cubic-bezier(.2,.7,.3,1)';

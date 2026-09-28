@@ -69,6 +69,12 @@ button:disabled{cursor:not-allowed;opacity:.42}
 .chip.on{background:#f1f0ee;color:#1f1e1c}
 .chip.think{color:var(--ink-2)}
 .chip.mate{background:#3a1f1c;color:#ff8a7a}
+.clock{margin-left:auto;min-width:96px;padding:5px 12px;border-radius:6px;background:#262522;color:#8b8986;font-weight:800;font-size:23px;line-height:1.15;text-align:right;font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap;transition:background .15s,color .15s}
+.chip + .clock{margin-left:8px}
+.clock.run{background:#f1f0ee;color:#1f1e1c}
+.clock.low{color:#ff8a7a}
+.clock.run.low{background:#e8412f;color:#fff;animation:lowpulse 1s ease-in-out infinite}
+@keyframes lowpulse{50%{background:#c9301f}}
 .dots{display:inline-flex;gap:3px}
 .dots b{width:5px;height:5px;border-radius:50%;background:var(--green-h);animation:pulse 1s ease-in-out infinite}
 .dots b:nth-child(2){animation-delay:.15s}.dots b:nth-child(3){animation-delay:.3s}
@@ -100,7 +106,10 @@ button:disabled{cursor:not-allowed;opacity:.42}
 .cb .s.l .co{color:var(--sq-d)}
 .cb .s.d .co{color:var(--sq-l)}
 .cb .pc{position:absolute;inset:0;background-size:100% 100%;z-index:2}
-.cb .pc.lift{opacity:.3}
+.cb .pc.lift{opacity:0}
+.cb .pc.my{cursor:grab}
+html.cb-grabbing,html.cb-grabbing *{cursor:grabbing!important}
+.cb .s.pm::before{content:"";position:absolute;inset:0;background:rgba(222,70,55,.58);z-index:1;pointer-events:none}
 .cb-arrows{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none}
 .cb-badge{--bw:5.6%;position:absolute;width:var(--bw);aspect-ratio:1;z-index:5;pointer-events:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));animation:pop .25s cubic-bezier(.2,1.4,.4,1)}
 .cb-badge svg{width:100%;height:100%;display:block}
@@ -327,6 +336,14 @@ button:disabled{cursor:not-allowed;opacity:.42}
 .seg button[aria-pressed="true"]{border-color:var(--green);background:#2f3a26}
 .seg button small{font-weight:500;color:var(--muted);font-size:11.5px;line-height:1.35;text-align:center}
 .seg .k{width:26px;height:26px;background-size:100% 100%}
+.tcs{display:grid;gap:6px}
+.tcrow{display:grid;grid-template-columns:52px repeat(3,minmax(0,1fr));gap:6px;align-items:center}
+.tcrow > span{font-size:12px;font-weight:800;letter-spacing:.02em}
+.tcs button{border:2px solid transparent;background:var(--panel-2);border-radius:8px;padding:8px 4px;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tcs button:hover{background:var(--raise)}
+.tcs button[aria-pressed="true"]{border-color:var(--green);background:#2f3a26}
+.tcs .tc-none{font-size:13.5px}
+.tcb{font-size:14px;font-weight:700;opacity:.85;margin-left:4px}
 details.adv{background:var(--panel-2);border-radius:8px;padding:0 12px}
 details.adv summary{cursor:pointer;padding:11px 0;font-weight:700;font-size:14px;color:var(--ink-2)}
 details.adv[open]{padding-bottom:12px}
@@ -478,6 +495,8 @@ kbd{display:inline-block;min-width:26px;text-align:center;font:700 12.5px var(--
   .who .rt{font-size:12.5px}
   .caps .cp{width:15px;height:15px;margin-left:-5px}
   .chip{padding:5px 9px;font-size:12px}
+  .clock{min-width:78px;font-size:19px;padding:4px 9px}
+  .pbar .chip.think{max-width:34vw;overflow:hidden;text-overflow:ellipsis}
   .side{height:auto;overflow:visible;border-radius:10px}
   .tabs{position:sticky;top:0;z-index:15;border-radius:10px 10px 0 0}
   .tabs button{padding:9px 2px 8px;font-size:12px}
@@ -529,6 +548,7 @@ kbd{display:inline-block;min-width:26px;text-align:center;font:700 12.5px var(--
   .who b{font-size:13.5px}
   .caps{display:none}
   .side{height:calc(100vh - 12px)}
+  .clock{min-width:70px;font-size:17px;padding:3px 8px}
   .tabs button{padding:6px 2px;font-size:11.5px}
   .tabs button svg{width:16px;height:16px}
   .foot{padding:6px}

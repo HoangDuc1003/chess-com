@@ -46,5 +46,8 @@ export function play(kind) {
     case 'end': tone(t, 523, 0.25, 0.06); tone(t + 0.12, 659, 0.25, 0.06); tone(t + 0.24, 784, 0.4, 0.06); break;
     case 'good': tone(t, 880, 0.12, 0.035); tone(t + 0.08, 1320, 0.16, 0.035); break;
     case 'bad': tone(t, 330, 0.18, 0.04, 'triangle'); break;
+    case 'premove': knock(t, { freq: 520, decay: 0.03, gain: 0.25 }); break;
+    case 'lowtime': tone(t, 988, 0.07, 0.05, 'square'); tone(t + 0.14, 988, 0.07, 0.05, 'square'); break;
+    case 'start': tone(t, 587, 0.14, 0.05); tone(t + 0.1, 880, 0.22, 0.05); break;
   }
 }
