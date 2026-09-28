@@ -1,16 +1,16 @@
 // Offline support. Bump VERSION when shipping changes to app files.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CORE = `core-${VERSION}`;
 const HEAVY = 'heavy-v1'; // engine, fonts, opening data: large and rarely changed
 
 const CORE_FILES = [
   './', 'manifest.webmanifest',
   'app/style.css', 'app/pieces.css', 'app/main.js', 'app/board.js', 'app/bots.js', 'app/engine.js',
-  'app/hash.js', 'app/lessons.js', 'app/openings.js', 'app/review.js', 'app/sound.js',
+  'app/hash.js', 'app/lessons.js', 'app/openings.js', 'app/puzzles.js', 'app/review.js', 'app/sound.js',
   'lib/chess.js', 'fonts/fonts.css', 'icons/icon-192.png', 'icons/favicon-32.png',
 ];
 
-const HEAVY_FILES = ['data/openings.json', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
+const HEAVY_FILES = ['data/openings.json', 'data/puzzles.json', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
   "fonts/be-vietnam-pro-latin-400-normal.woff2",
   "fonts/be-vietnam-pro-latin-500-normal.woff2",
   "fonts/be-vietnam-pro-latin-600-normal.woff2",

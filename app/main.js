@@ -3,9 +3,10 @@ import { BoardView, badgeSvg } from './board.js';
 import { Engine } from './engine.js';
 import { BOTS, botById, eloText, humanPick, scoreCp } from './bots.js';
 import { classify, explain, CLASSES, winPct, fmtCp, pvSan, TAG_LESSON, VAL } from './review.js';
-import { loadOpenings, openingsReady, analyzeLine, continuations, simulationLine, deepestName, sanLine, opening, guideFor, vnName, LIBRARY, bookEntry, mainLine } from './openings.js';
+import { loadOpenings, openingsReady, analyzeLine, continuations, simulationLine, deepestName, sanLine, opening, guideFor, vnName, LIBRARY, LIBRARY_CATS, bookEntry, mainLine } from './openings.js';
 import { LESSONS, LESSON_CATS, lessonById } from './lessons.js';
 import { play as sfx, unlockAudio, setSound } from './sound.js';
+import { loadPuzzles, puzzlesReady, puzzleCount, pickPuzzle, rateAfter, themeNames, PUZZLE_GROUPS, LEVELS, chipById } from './puzzles.js';
 
 const $ = (s) => document.querySelector(s);
 const STORE = 'dau-stockfish-v2';
@@ -48,6 +49,8 @@ const S = {
   paused: false, botPending: null, thinking: null, mateNote: null,
   coachPly: null, botCoachPly: null,
   tab: 'bots', lesson: null, dictCat: 'all', preview: null,
+  pz: null, pzRating: 800, pzGames: 0, pzSolved: 0, pzStreak: 0, pzBest: 0, pzChip: 'all', pzLevel: 'normal', pzSeen: [], pzHist: [],
+  openCardClosed: null, lastOpenFam: null, libCat: 'e4e5',
   postReview: false,
   evalWhite: 20,
 };
@@ -84,6 +87,8 @@ function snapshot() {
     botId: S.botId, customElo: S.customElo, mode: S.mode, movetime: S.movetime, sound: S.sound,
     evalBarPref: S.evalBarPref, pausePref: S.pausePref, haptics: S.haptics, boardTheme: S.boardTheme, started: S.started, resigned: S.resigned,
     review: S.review, hintsUsed: S.hintsUsed, tab: S.tab,
+    pzRating: S.pzRating, pzGames: S.pzGames, pzSolved: S.pzSolved, pzStreak: S.pzStreak, pzBest: S.pzBest,
+    pzChip: S.pzChip, pzLevel: S.pzLevel, pzSeen: S.pzSeen.slice(-400), pzHist: S.pzHist.slice(-30),
   };
 }
 function save() { try { localStorage.setItem(STORE, JSON.stringify(snapshot())); } catch {} }
@@ -101,7 +106,12 @@ function restore(d) {
   for (const k of ['sound', 'evalBarPref', 'pausePref', 'haptics', 'started', 'resigned']) pick(k, (v) => typeof v === 'boolean');
   pick('boardTheme', (v) => ['green', 'brown', 'blue', 'slate'].includes(v));
   pick('hintsUsed', (v) => Number.isFinite(v) && v >= 0);
-  pick('tab', (v) => ['play', 'open', 'dict', 'bots'].includes(v));
+  pick('tab', (v) => ['play', 'open', 'puzz', 'dict', 'bots'].includes(v));
+  for (const k of ['pzRating', 'pzGames', 'pzSolved', 'pzStreak', 'pzBest']) pick(k, (v) => Number.isFinite(v) && v >= 0 && v <= 100000);
+  pick('pzChip', (v) => typeof v === 'string' && chipById(v).id === v);
+  pick('pzLevel', (v) => ['easy', 'normal', 'hard'].includes(v));
+  pick('pzSeen', (v) => Array.isArray(v) && v.every((x) => typeof x === 'string'));
+  pick('pzHist', (v) => Array.isArray(v) && v.every((x) => x && typeof x === 'object'));
   if (Array.isArray(d.moves)) {
     for (const u of d.moves) {
       try { pushMove(u); } catch { break; }
@@ -183,7 +193,7 @@ function positionCmd() {
 }
 
 function schedule() {
-  if (!eng.ready || eng.busy) return;
+  if (S.pz || !eng.ready || eng.busy) return;
   while (need.length && satisfied(need[0].fen, need[0].mpv)) need.shift();
   if (need.length) { runReview(need[0]); return; }
   if (finalizeReviews()) renderAll();
@@ -268,6 +278,7 @@ function commitBotMove(uci, fen, score) {
   S.mateNote = score && score.mate > 1 ? { fen: S.game.fen(), n: score.mate - 1 } : null;
   if (flags().analysis) { S.pending.add(S.hist.length); ensure(rec.before, 2); }
   S.botCoachPly = null;
+  noteOpening();
   renderAll();
   schedule();
 }
@@ -359,6 +370,7 @@ function onBoardMove(mv, animated) {
     }
   }
   S.coachPly = null;
+  noteOpening();
   if (S.tab === 'bots') S.tab = 'play';
   renderAll();
   save();
@@ -400,6 +412,7 @@ function resign() {
   save();
 }
 function newGame() {
+  if (S.pz) { S.pz = null; board.clearAnnotations(); }
   eng.cancel();
   unlockAudio();
   S.game = new Chess();
@@ -448,14 +461,15 @@ function showBest(p) {
 /* ================= board ================= */
 const board = new BoardView($('#board'), {
   interactive: true,
-  canMove: () => canUserMove(),
-  myColor: () => S.userColor,
-  onMove: onBoardMove,
-  onBlocked: () => { if (S.view != null) go(S.hist.length); },
+  canMove: () => (S.pz ? pzCanMove() : canUserMove()),
+  myColor: () => (S.pz ? S.pz.color : S.userColor),
+  onMove: (mv, animated) => (S.pz ? pzMove(mv, animated) : onBoardMove(mv, animated)),
+  onBlocked: () => { if (!S.pz && S.view != null) go(S.hist.length); },
   onIllegal: () => sfx('illegal'),
   onInteract: () => unlockAudio(),
 });
 function drawBoard(anim) {
+  if (S.pz) { pzDraw(anim); return; }
   const vp = viewPly();
   const fen = fenAtPly(vp);
   const rec = S.hist[vp - 1];
@@ -465,6 +479,7 @@ function drawBoard(anim) {
   board.setArrows(arrows());
 }
 function drawBadge() {
+  if (S.pz) { board.setBadge(S.pz.badge || null); return; }
   const vp = viewPly();
   const rec = S.hist[vp - 1];
   const rv = S.review[vp];
@@ -472,6 +487,7 @@ function drawBadge() {
   board.setBadge(rec && rv && showAll ? { sq: rec.to, cls: rv.cls } : null);
 }
 function arrows() {
+  if (S.pz) return S.pz.arrows || [];
   const list = [];
   const vp = viewPly();
   if (S.showBest && vp === S.showBest - 1) {
@@ -519,7 +535,7 @@ function evalWhiteFor(fen) {
   return fen.split(' ')[1] === 'w' ? cp : -cp;
 }
 function renderEval() {
-  const show = flags().evalBar || (isOver() && Object.keys(S.review).length > 0);
+  const show = !S.pz && (flags().evalBar || (isOver() && Object.keys(S.review).length > 0));
   const bar = $('#evalBar');
   bar.hidden = !show;
   document.querySelectorAll('.pbar').forEach((p) => p.classList.toggle('noeb', !show));
@@ -573,7 +589,20 @@ function barHtml(color) {
   return `<div class="ava" style="background:${b.tone}"><i class="${b.icon}"></i></div>
     <div class="who"><div class="nm"><b>${esc(b.name)}</b><span class="rt">(${eloText(b)})</span></div><div class="caps">${capsHtml(color)}</div></div>${chip}`;
 }
+function pzBarHtml(top) {
+  const pz = S.pz;
+  if (top) {
+    return `<div class="ava" style="background:#6a5a9e"><i class="${pz.color === 'w' ? 'bq' : 'wq'}"></i></div>
+      <div class="who"><div class="nm"><b>Giải đố</b><span class="rt">độ khó ${pz.p.rating}</span></div><div class="caps"><span class="rt" style="color:var(--muted);font-size:12.5px">#${esc(pz.p.id)}</span></div></div>`;
+  }
+  const chip = pz.status === 'solved' ? `<span class="chip on" style="background:var(--green);color:#fff">Đã giải</span>`
+    : pz.status === 'shown' ? '<span class="chip">Đã xem lời giải</span>'
+    : pzCanMove() ? '<span class="chip on">Lượt bạn</span>' : '';
+  return `<div class="ava" style="background:#5d5a55"><i class="${pz.color}p"></i></div>
+    <div class="who"><div class="nm"><b>Bạn</b><span class="rt">điểm giải đố ${S.pzRating}</span></div><div class="caps"><span class="rt" style="color:var(--muted);font-size:12.5px">Chuỗi đúng: ${S.pzStreak}</span></div></div>${chip}`;
+}
 function renderBars() {
+  if (S.pz) { $('#barTop').innerHTML = pzBarHtml(true); $('#barBottom').innerHTML = pzBarHtml(false); return; }
   const top = S.orientation === 'w' ? 'b' : 'w';
   $('#barTop').innerHTML = barHtml(top);
   $('#barBottom').innerHTML = barHtml(top === 'w' ? 'b' : 'w');
@@ -592,6 +621,10 @@ function openingInfo(ply) {
 function renderStrip() {
   const vp = viewPly();
   const el = $('#ostrip');
+  if (S.pz) {
+    el.innerHTML = `<span class="eco">Đố</span><span class="on">Giải đố · tìm nước tốt nhất cho ${S.pz.color === 'w' ? 'Trắng' : 'Đen'}</span><span class="off">Ván cờ đang tạm dừng</span>`;
+    return;
+  }
   if (!openingsReady()) { el.innerHTML = '<span class="off">Đang tải dữ liệu khai cuộc…</span>'; return; }
   if (vp === 0) { el.innerHTML = '<span class="eco">—</span><span class="on">Vị trí ban đầu</span>'; return; }
   const a = openingInfo(vp);
@@ -687,16 +720,73 @@ function movesHtml() {
   }
   return `<div class="moves">${h}</div>`;
 }
+/* Opening card: in learning mode, show which opening is on the board, with a diagram. */
+const openDiag = document.createElement('div');
+openDiag.className = 'od';
+const openDiagBoard = new BoardView(openDiag, { coords: false });
+const GENERIC_OPENING = /^(King's Pawn Game|Queen's Pawn Game|King's Knight Opening|Indian Defense)$/;
+function openCardData() {
+  if (S.mode !== 'learn' || !openingsReady() || !S.started) return null;
+  const vp = viewPly();
+  if (!vp) return null;
+  const a = openingInfo(vp);
+  if (!a || !a.current) return null;
+  if (!a.inBook && vp - a.lastBookPly > 8) return null;
+  const o = opening(a.current.id);
+  const fam = vnName(o.name);
+  if (S.openCardClosed === fam) return null;
+  return { ev: a.current, o, fam, inBook: a.inBook };
+}
+function openCardHtml() {
+  const d = openCardData();
+  if (!d) return '';
+  const rec = S.hist[d.ev.ply - 1];
+  const who = rec.color === S.userColor ? 'Bạn đang triển khai' : 'Máy vừa chọn';
+  const idea = guideFor(d.o.name).idea.split(/(?<=\.)\s/)[0];
+  const fresh = d.ev.ply === S.hist.length && S.view == null;
+  return `<div class="ocard2${fresh ? ' fresh' : ''}"><div class="odslot"></div><div class="oi"><div class="lab">${who} <small>${esc(d.o.eco)}</small></div><b>${esc(d.fam)}</b><span class="en" title="${esc(d.o.name)}">${esc(d.o.name)}</span><p>${esc(idea)}</p><button type="button" class="lk" data-act="tab" data-tab="open">Xem ý tưởng và mô phỏng →</button></div><button type="button" class="x" data-act="hideopen" data-fam="${esc(d.fam)}" aria-label="Ẩn thẻ khai cuộc">✕</button></div>`;
+}
+function mountOpenCard() {
+  const slot = document.querySelector('#panePlay .odslot');
+  const d = slot && openCardData();
+  if (!d) return;
+  slot.appendChild(openDiag);
+  const fen = fenAtPly(d.ev.ply);
+  const rec = S.hist[d.ev.ply - 1];
+  const g = new Chess(fen);
+  openDiagBoard.setOrientation(S.orientation);
+  openDiagBoard.set({ fen, lastMove: { from: rec.from, to: rec.to }, check: g.inCheck() ? kingSq(g, g.turn()) : null });
+  const next = mainLine(fen, 1)[0];
+  openDiagBoard.setArrows(next ? [{ from: next.uci.slice(0, 2), to: next.uci.slice(2, 4), color: 'preview', width: 0.18 }] : []);
+}
+function noteOpening() {
+  if (S.mode !== 'learn' || !openingsReady()) return;
+  const a = openingInfo(S.hist.length);
+  if (!a || !a.current || a.current.ply !== S.hist.length) return;
+  const name = opening(a.current.id).name;
+  const fam = vnName(name);
+  if (fam === S.lastOpenFam) return;
+  S.lastOpenFam = fam;
+  S.openCardClosed = null;
+  if (!GENERIC_OPENING.test(name.split(':')[0])) toast('Khai cuộc: ' + fam, 2600);
+}
+
 function renderPlay() {
   const ua = accuracy(S.userColor), ba = accuracy(botColor());
   const accRow = ua != null || ba != null
     ? `<div class="accrow"><span>Độ chính xác của bạn <b>${ua != null ? ua.toFixed(1).replace('.', ',') : '—'}</b></span><span>Máy <b>${ba != null ? ba.toFixed(1).replace('.', ',') : '—'}</b></span></div>` : '';
-  $('#panePlay').innerHTML = `${coachHtml()}<div id="hintSlot">${hintBoxHtml()}</div>${movesHtml()}${accRow}`;
-  const cur = $('#panePlay .m.cur');
-  const sb = $('#sideBody');
-  if (cur && S.view == null && sb.scrollHeight > sb.clientHeight + 2 && getComputedStyle(sb).overflowY === 'auto') {
-    const top = cur.getBoundingClientRect().top - sb.getBoundingClientRect().top + sb.scrollTop;
-    if (top < sb.scrollTop || top + cur.offsetHeight > sb.scrollTop + sb.clientHeight) sb.scrollTop = top - sb.clientHeight / 2;
+  const pm0 = $('#playMoves');
+  const wasAtEnd = !pm0 || pm0.scrollTop + pm0.clientHeight >= pm0.scrollHeight - 8;
+  const prevTop = pm0 ? pm0.scrollTop : 0;
+  $('#panePlay').innerHTML = `<div class="play-top">${openCardHtml()}${coachHtml()}<div id="hintSlot">${hintBoxHtml()}</div>${accRow}</div><div class="play-moves" id="playMoves">${movesHtml()}</div>`;
+  mountOpenCard();
+  const pm = $('#playMoves');
+  const cur = pm.querySelector('.m.cur');
+  if (S.view == null) { if (wasAtEnd) pm.scrollTop = pm.scrollHeight; else pm.scrollTop = prevTop; }
+  else if (cur) {
+    pm.scrollTop = prevTop;
+    const top = cur.offsetTop - pm.offsetTop;
+    if (top < pm.scrollTop || top + cur.offsetHeight > pm.scrollTop + pm.clientHeight) pm.scrollTop = top - pm.clientHeight / 2;
   }
 }
 
@@ -846,7 +936,9 @@ function renderOpen() {
     html += `<div class="ocard"><p>Thế cờ này đã ra khỏi sách khai cuộc${a && a.lastBookPly ? ` từ nước ${Math.floor(a.lastBookPly / 2) + 1}` : ''}. Từ đây hãy chơi theo nguyên tắc và tính toán.</p>${cur ? `<div><button type="button" class="btn" data-act="simmain">Xem tuyến chính của ${esc(vnName(cur.name))}</button></div>` : ''}</div>`;
   }
   html += '<div id="simSlotOpen"></div>';
-  html += `<div class="lab">Thư viện khai cuộc <small>bấm để xem mô phỏng</small></div><div class="libs">${LIBRARY.map((L, i) => `<button type="button" data-act="simlib" data-i="${i}"><span class="sd ${L.side}"></span>${esc(L.vn)}</button>`).join('')}</div>`;
+  html += `<div class="lab">Thư viện khai cuộc <small>${LIBRARY.length} tuyến chính · bấm để xem mô phỏng</small></div>
+    <div class="cats">${LIBRARY_CATS.map((c) => `<button type="button" data-act="libcat" data-v="${c.id}" aria-pressed="${S.libCat === c.id}">${esc(c.vn)}</button>`).join('')}</div>
+    <div class="libs">${LIBRARY.map((L, i) => (L.cat === S.libCat ? `<button type="button" data-act="simlib" data-i="${i}" title="${L.side === 'w' ? 'Góc nhìn Trắng' : 'Góc nhìn Đen'}"><span class="sd ${L.side}"></span>${esc(L.vn)}</button>` : '')).join('')}</div>`;
   pane.innerHTML = html;
   if (simOpenOn) $('#simSlotOpen').appendChild(simOpen.el);
 }
@@ -952,6 +1044,203 @@ function renderSummary() {
   over.hidden = false;
 }
 
+/* ================= puzzles ================= */
+function moveSound(g, m) {
+  sfx(g.inCheck() ? 'check' : (m.flags.includes('k') || m.flags.includes('q')) ? 'castle' : m.promotion ? 'promote' : m.captured ? 'capture' : 'move');
+}
+function startPuzzle() {
+  if (!puzzlesReady()) { toast('Đang tải thế cờ…'); return; }
+  const p = pickPuzzle({ rating: S.pzRating, chip: S.pzChip, level: S.pzLevel, seen: new Set(S.pzSeen) });
+  if (!p) { toast('Không có thế cờ phù hợp với bộ lọc này'); return; }
+  unlockAudio();
+  eng.cancel();
+  S.hintOn = false;
+  const g = new Chess(p.fen);
+  let setup;
+  try { setup = g.move(uciObj(p.moves[0])); } catch { toast('Thế cờ lỗi, chọn thế khác'); return; }
+  S.pz = { p, game: g, step: 1, color: g.turn(), status: 'solving', failed: false, usedHint: false, rated: false,
+    delta: 0, last: { from: setup.from, to: setup.to }, badge: null, arrows: [], hint: 0, busy: true, msg: '' };
+  S.pzSeen.push(p.id);
+  if (S.pzSeen.length > 400) S.pzSeen = S.pzSeen.slice(-400);
+  S.tab = 'puzz';
+  board.clearAnnotations();
+  board.setOrientation(S.pz.color);
+  if (isPhone()) window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Show the position first, then play the opponent's move that sets up the puzzle.
+  board.set({ fen: p.fen });
+  board.setBadge(null);
+  board.setArrows([]);
+  renderAll();
+  const pz = S.pz;
+  setTimeout(() => {
+    if (S.pz !== pz) return;
+    pz.busy = false;
+    moveSound(g, setup);
+    pzDraw({ from: setup.from, to: setup.to });
+    renderAll();
+  }, 550);
+}
+function pzCanMove() { const pz = S.pz; return !!pz && pz.status === 'solving' && !pz.busy && pz.game.turn() === pz.color; }
+function pzDraw(anim) {
+  const pz = S.pz;
+  const g = pz.game;
+  board.set({ fen: g.fen(), lastMove: pz.last, check: g.inCheck() ? kingSq(g, g.turn()) : null, animate: anim });
+  board.setBadge(pz.badge);
+  board.setArrows(pz.arrows);
+}
+function pzRate(solved) {
+  const pz = S.pz;
+  if (pz.rated) return;
+  pz.rated = true;
+  if (pz.usedHint) { pz.delta = 0; S.pzHist.push({ id: pz.p.id, rating: pz.p.rating, ok: solved, hint: true }); return; }
+  const before = S.pzRating;
+  S.pzRating = rateAfter(S.pzRating, pz.p.rating, solved, S.pzGames);
+  pz.delta = S.pzRating - before;
+  S.pzGames++;
+  if (solved) { S.pzSolved++; S.pzStreak++; S.pzBest = Math.max(S.pzBest, S.pzStreak); } else S.pzStreak = 0;
+  S.pzHist.push({ id: pz.p.id, rating: pz.p.rating, ok: solved });
+  if (S.pzHist.length > 30) S.pzHist = S.pzHist.slice(-30);
+}
+function pzMove(mv) {
+  const pz = S.pz;
+  if (!pzCanMove()) return;
+  const g = pz.game;
+  const uci = mv.from + mv.to + (mv.promotion || '');
+  const expected = pz.p.moves[pz.step];
+  let m;
+  try { m = g.move(uciObj(uci)); } catch { return; }
+  const ok = uci === expected || g.isCheckmate();
+  pz.arrows = [];
+  if (!ok) {
+    // Show the wrong move briefly, then take it back.
+    pz.failed = true;
+    pzRate(false);
+    pz.busy = true;
+    pz.badge = { sq: m.to, cls: 'miss' };
+    pz.msg = `${m.san} chưa đúng. Thử lại nhé.`;
+    moveSound(g, m);
+    sfx('bad');
+    buzz(40);
+    pzDraw(null);
+    renderAll();
+    setTimeout(() => {
+      if (S.pz !== pz) return;
+      g.undo();
+      pz.badge = null;
+      pz.busy = false;
+      pzDraw(null);
+      renderAll();
+    }, 700);
+    return;
+  }
+  moveSound(g, m);
+  pz.step++;
+  pz.last = { from: m.from, to: m.to };
+  pz.badge = { sq: m.to, cls: 'best' };
+  pz.hint = 0;
+  if (pz.step >= pz.p.moves.length || g.isCheckmate()) {
+    pz.status = 'solved';
+    pzRate(true);
+    pz.msg = '';
+    sfx('good');
+    buzz([15, 40, 15]);
+    pzDraw(null);
+    renderAll();
+    save();
+    return;
+  }
+  pz.msg = `${m.san} đúng! Tiếp tục…`;
+  pz.busy = true;
+  pzDraw(null);
+  renderAll();
+  setTimeout(() => {
+    if (S.pz !== pz) return;
+    const r = g.move(uciObj(pz.p.moves[pz.step]));
+    pz.step++;
+    pz.last = { from: r.from, to: r.to };
+    pz.badge = null;
+    pz.busy = false;
+    pz.msg = `Đối thủ đáp ${r.san}. Tìm nước tiếp theo.`;
+    moveSound(g, r);
+    pzDraw({ from: r.from, to: r.to });
+    renderAll();
+  }, 500);
+}
+function pzHint() {
+  const pz = S.pz;
+  if (!pz || !pzCanMove()) return;
+  const u = pz.p.moves[pz.step];
+  pz.usedHint = true;
+  pz.hint = Math.min(2, pz.hint + 1);
+  pz.arrows = pz.hint === 1 ? [{ from: u.slice(0, 2), to: u.slice(0, 2), color: 'hint' }] : [{ from: u.slice(0, 2), to: u.slice(2, 4), color: 'hint' }];
+  if (pz.hint === 1) { board.clearAnnotations(); board.userSquares.set(u.slice(0, 2), 'g'); board.render(); pz.arrows = []; }
+  pz.msg = pz.hint === 1 ? 'Gợi ý: quân cần đi đã được tô xanh.' : 'Gợi ý: mũi tên xanh là nước đúng.';
+  pzDraw(null);
+  renderAll();
+}
+function pzSolution() {
+  const pz = S.pz;
+  if (!pz || pz.status !== 'solving') return;
+  pzRate(false);
+  pz.status = 'shown';
+  pz.busy = true;
+  const g = pz.game;
+  const play = () => {
+    if (S.pz !== pz) return;
+    if (pz.step >= pz.p.moves.length) { pz.busy = false; renderAll(); save(); return; }
+    const r = g.move(uciObj(pz.p.moves[pz.step]));
+    pz.step++;
+    pz.last = { from: r.from, to: r.to };
+    pz.badge = null;
+    moveSound(g, r);
+    pzDraw({ from: r.from, to: r.to });
+    renderAll();
+    setTimeout(play, 750);
+  };
+  play();
+}
+function exitPuzzle() {
+  S.pz = null;
+  board.clearAnnotations();
+  board.setOrientation(S.orientation);
+  S.tab = S.started ? 'play' : 'bots';
+  drawBoard(null);
+  renderAll();
+  schedule();
+}
+function renderPuzz() {
+  const pane = $('#panePuzz');
+  if (!puzzlesReady()) { pane.innerHTML = '<p class="note">Đang tải thế cờ…</p>'; return; }
+  const pz = S.pz;
+  const dots = S.pzHist.slice(-16).map((h) => `<i class="${h.ok ? 'ok' : 'no'}${h.hint ? ' hint' : ''}" title="Độ khó ${h.rating}"></i>`).join('');
+  let html = `<div class="pzstats"><div><small>Điểm giải đố</small><b>${S.pzRating}</b></div><div><small>Chuỗi đúng</small><b>${S.pzStreak}</b></div><div><small>Đã giải đúng</small><b>${S.pzSolved}/${S.pzGames}</b></div></div>`;
+  if (dots) html += `<div class="pzdots" aria-label="Kết quả gần đây">${dots}</div>`;
+  if (pz) {
+    const side = pz.color === 'w' ? 'Trắng' : 'Đen';
+    const tags = themeNames(pz.p.themes).map((t) => `<span>${esc(t)}</span>`).join('');
+    const delta = pz.rated && !pz.usedHint ? ` <span class="delta ${pz.delta >= 0 ? 'up' : 'down'}">${pz.delta >= 0 ? '+' : ''}${pz.delta}</span>` : '';
+    let body;
+    if (pz.status === 'solving') {
+      body = `<h3>Lượt ${side}: tìm nước tốt nhất</h3><p>${esc(pz.msg || 'Đối thủ vừa đi. Hãy tìm nước mạnh nhất.')}</p>
+        <div class="acts"><button type="button" class="btn go" data-act="pzhint">Gợi ý</button><button type="button" class="btn" data-act="pzsol">Xem lời giải</button><button type="button" class="btn" data-act="pznext">Bỏ qua</button></div>`;
+    } else {
+      const title = pz.status === 'shown' ? 'Lời giải' : pz.failed || pz.usedHint ? 'Đã giải xong' : 'Chính xác!';
+      const sol = pvSan(new Chess(pz.p.fen).fen(), pz.p.moves, 12);
+      body = `<h3>${title}${delta}</h3><p>${pz.usedHint ? 'Có dùng gợi ý nên thế này không tính điểm.' : pz.failed || pz.status === 'shown' ? 'Lần sau sẽ tốt hơn. Xem lại các nước bằng lời giải bên dưới.' : 'Bạn tìm ra toàn bộ lời giải ngay lần đầu.'}</p>
+        <p class="sol">${esc(sol)}</p><div class="tags">${tags}</div>
+        <div class="acts"><button type="button" class="btn go" data-act="pznext">Thế tiếp theo</button><button type="button" class="btn" data-act="pzexit">Về ván cờ</button></div>`;
+    }
+    html += `<div class="pzcard ${pz.status}${pz.failed ? ' failed' : ''}"><div class="lab"><span>Thế cờ <span class="pid">#${esc(pz.p.id)}</span></span><small>độ khó ${pz.p.rating}</small></div>${body}</div>`;
+    if (pz.status === 'solving') html += '<button type="button" class="btn ghost" data-act="pzexit">← Về ván cờ (ván đang chơi được giữ nguyên)</button>';
+  } else {
+    html += `<div class="ocard"><h3>Giải thế cờ</h3><p>${puzzleCount().toLocaleString('vi-VN')} thế cờ thật từ lichess: chiếu hết, đòn chiến thuật, khai cuộc, trung cuộc, tàn cuộc. Độ khó tự điều chỉnh theo điểm của bạn. Ván cờ đang chơi được tạm dừng và giữ nguyên.</p><button type="button" class="btn go big" data-act="pzstart">Bắt đầu giải</button></div>`;
+  }
+  html += `<div class="lab">Độ khó</div><div class="segs">${LEVELS.map((l) => `<button type="button" data-act="pzlevel" data-v="${l.id}" aria-pressed="${S.pzLevel === l.id}">${l.vn}</button>`).join('')}</div>`;
+  html += PUZZLE_GROUPS.map((g) => `<div class="chipgrp"><div class="lab">${esc(g.vn)}</div><div class="cats">${g.chips.map((c) => `<button type="button" data-act="pzchip" data-v="${c.id}" aria-pressed="${S.pzChip === c.id}">${esc(c.vn)}</button>`).join('')}</div></div>`).join('');
+  html += '<p class="fine">Thế cờ lấy từ cơ sở dữ liệu giải đố của lichess.org (CC0). Mỗi thế bắt đầu bằng nước đi của đối thủ; bạn tìm đòn đáp trả. Ở nước chiếu hết cuối cùng, mọi nước chiếu hết đều được tính đúng.</p>';
+  pane.innerHTML = html;
+}
+
 /* ---------- footer, tabs, all ---------- */
 function renderFooter() {
   const f = flags();
@@ -967,6 +1256,12 @@ function renderFooter() {
   set('undo', 'hidden', !f.takebacks);
   set('undo', 'disabled', !n);
   set('resign', 'disabled', isOver() || !S.started || !n);
+  if (S.pz) {
+    for (const c of ['first', 'prev', 'next', 'last', 'undo', 'resign']) set(c, 'disabled', true);
+    set('hint', 'hidden', false);
+    set('hint', 'disabled', !pzCanMove());
+    document.querySelectorAll('[data-hint-label]').forEach((el) => { el.textContent = 'Gợi ý'; });
+  }
 }
 function renderTabs() {
   document.querySelectorAll('#tabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === S.tab)));
@@ -981,6 +1276,7 @@ function renderAll() {
   else if (S.tab === 'open') renderOpen();
   else if (S.tab === 'dict') { if (!$('#paneDict').innerHTML || !S.lesson) renderDict(); }
   else if (S.tab === 'bots') renderBots();
+  else if (S.tab === 'puzz') renderPuzz();
   renderFooter();
   renderSummary();
   board.setArrows(arrows());
@@ -991,6 +1287,7 @@ function renderAll() {
 $('#tabs').addEventListener('click', (e) => {
   const b = e.target.closest('[data-tab]');
   if (!b) return;
+  if (S.pz && b.dataset.tab === 'play') { exitPuzzle(); return; }
   S.tab = b.dataset.tab;
   if (S.tab === 'dict') renderDict();
   renderAll();
@@ -1010,6 +1307,14 @@ function onAct(e) {
     case 'best': showBest(+t.dataset.p); break;
     case 'continue': S.paused = false; renderAll(); schedule(); break;
     case 'hint': toggleHint(); break;
+    case 'hideopen': S.openCardClosed = t.dataset.fam; renderPlay(); break;
+    case 'pzstart': case 'pznext': startPuzzle(); break;
+    case 'pzhint': pzHint(); break;
+    case 'pzsol': pzSolution(); break;
+    case 'pzexit': exitPuzzle(); break;
+    case 'libcat': S.libCat = t.dataset.v; renderOpen(); break;
+    case 'pzchip': S.pzChip = t.dataset.v; renderPuzz(); save(); break;
+    case 'pzlevel': S.pzLevel = t.dataset.v; renderPuzz(); save(); break;
     case 'lesson': openLesson(t.dataset.id); break;
     case 'lessonback': simDict.stop(); S.lesson = null; renderDict(); break;
     case 'cat': S.dictCat = t.dataset.id; renderDict(); break;
@@ -1067,7 +1372,10 @@ $('#sideBody').addEventListener('mouseover', (e) => {
 });
 $('#sideBody').addEventListener('mouseleave', () => { if (S.preview) { S.preview = null; board.setArrows(arrows()); } });
 
-function flip() { S.orientation = S.orientation === 'w' ? 'b' : 'w'; board.setOrientation(S.orientation); drawBoard(null); renderAll(); }
+function flip() {
+  if (S.pz) { board.setOrientation(board.orientation === 'w' ? 'b' : 'w'); pzDraw(null); return; }
+  S.orientation = S.orientation === 'w' ? 'b' : 'w'; board.setOrientation(S.orientation); drawBoard(null); renderAll();
+}
 let resignArmed = 0;
 function askResign() {
   if (isOver() || !S.started || !S.hist.length) return;
@@ -1095,8 +1403,8 @@ function runCmd(cmd) {
     case 'prev': go(viewPly() - 1); break;
     case 'next': go(viewPly() + 1); break;
     case 'last': go(S.hist.length); break;
-    case 'hint': toggleHint(); break;
-    case 'undo': takeback(); break;
+    case 'hint': S.pz ? pzHint() : toggleHint(); break;
+    case 'undo': if (!S.pz) takeback(); break;
     case 'flip': flip(); break;
     case 'resign': askResign(); break;
     case 'newgame':
@@ -1143,7 +1451,9 @@ document.addEventListener('keydown', (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.key === 'ArrowLeft') { e.preventDefault(); go(viewPly() - 1); }
   else if (e.key === 'ArrowRight') { e.preventDefault(); go(viewPly() + 1); }
-  else if (e.key === 'h' || e.key === 'H') { e.preventDefault(); toggleHint(); }
+  else if (e.key === 'h' || e.key === 'H') { e.preventDefault(); S.pz ? pzHint() : toggleHint(); }
+  else if (e.key === 'g' || e.key === 'G') { e.preventDefault(); if (!S.pz) takeback(); }
+  else if ((e.key === 'n' || e.key === 'N' || e.key === 'Enter') && S.pz && S.pz.status !== 'solving') { e.preventDefault(); startPuzzle(); }
   else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); flip(); }
   else if (e.key === 'Escape') { board.clearAnnotations(); closeMore(); if (S.hintOn) toggleHint(); }
 });
@@ -1159,6 +1469,7 @@ function start(hotData) {
   drawBoard(null);
   renderPill();
   renderAll();
+  loadPuzzles().then(() => { if (S.tab === 'puzz') renderAll(); }).catch(() => {});
   loadOpenings().then(() => { openMemo.key = null; renderAll(); }).catch(() => { $('#ostrip').innerHTML = '<span class="off">Không tải được dữ liệu khai cuộc</span>'; });
   eng.boot(HASH_MB, THREADS);
 }
