@@ -13,7 +13,7 @@
 
 **A browser chess trainer: play 12 Stockfish bots from ≈250 Elo to full strength, with every move graded live, a coach that explains your mistakes, openings, puzzles and a mistake dictionary. Vietnamese interface, no server, works offline.**
 
-[![Live Demo](https://img.shields.io/badge/🚀_Play_Now-chess--bot--com.vercel.app-success?style=for-the-badge&logo=vercel&logoColor=white)](https://chess-bot-com.vercel.app)
+[![Live Demo](https://img.shields.io/badge/🚀_Play_Now-chess--training--com.vercel.app-success?style=for-the-badge&logo=vercel&logoColor=white)](https://chess-training-com.vercel.app)
 
 </div>
 
