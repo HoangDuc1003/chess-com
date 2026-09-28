@@ -1,11 +1,12 @@
 // Offline assistant: answers common questions instantly from Stockfish's analysis and the app's own data.
+import { Chess } from '../../lib/chess.js';
 import { CLASSES, fmtCp } from '../analysis/review.js';
 import { evalText, loosePieces, materialOf, openingGuide, PIECE_VN, sideVn } from './context.js';
 
 const fold = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
 const INTENTS = [
   ['rules', /nhap thanh|bat tot qua duong|phong cap|luat|en passant|castl/],
-  ['why', /vi sao|tai sao|sao lai|sai o dau|loi gi|nuoc vua|nuoc nay|nuoc do|co tot khong|danh gia nuoc/],
+  ['why', /vi sao|tai sao|tao sao|sao lai|sai o dau|loi gi|nuoc vua|nuoc nay|nuoc do|co tot khong|danh gia nuoc/],
   ['threat', /de doa|nguy hiem|bi an|treo|mat quan|bi bat|threat|can than/],
   ['opening', /khai cuoc|opening|ten the co|ten van|dang choi gi/],
   ['plan', /ke hoach|plan|chien luoc|y tuong|nen lam gi|huong di/],
@@ -81,12 +82,56 @@ function planAnswer(v) {
 }
 const RULES = 'Luật nhanh:\n- **Nhập thành** (O-O / O-O-O): Vua đi 2 ô về phía Xe, Xe nhảy qua Vua. Cần: Vua và Xe chưa đi, không có quân ở giữa, Vua không đang bị chiếu và không đi qua ô bị kiểm soát.\n- **Bắt tốt qua đường**: khi tốt đối phương vừa tiến 2 ô và đứng cạnh tốt của bạn, bạn được ăn nó như thể nó chỉ tiến 1 ô, nhưng chỉ ngay nước tiếp theo.\n- **Phong cấp**: tốt đi tới hàng cuối được đổi thành Hậu, Xe, Tượng hoặc Mã (thường chọn Hậu).';
 
+/* A move written in the question ("nc4", "Bxf7", "o-o"), if it is legal in the viewed position. */
+function mentionedMove(q, v) {
+  const toks = q.match(/\b(?:[kqrbn]?[a-h]?[1-8]?x?[a-h][1-8](?:=[qrbn])?|o-o(?:-o)?|0-0(?:-0)?)(?![a-z0-9])/gi) || [];
+  for (const t of toks) {
+    const base = t.replace(/0/g, 'O');
+    const cands = /^o-o/i.test(base) ? [base.toUpperCase()] : [base[0].toUpperCase() + base.slice(1).toLowerCase(), base.toLowerCase()];
+    for (const c of cands) {
+      try { const m = new Chess(v.fen).move(c); if (m) return m; } catch { /* not legal as written */ }
+    }
+  }
+  return null;
+}
+function moveAnswer(m, v) {
+  const g = new Chess(v.fen);
+  g.move(m.san);
+  const opp = m.color === 'w' ? 'b' : 'w';
+  const facts = [];
+  if (m.captured) facts.push(`ăn ${PIECE_VN[m.captured]} ở ${m.to}`);
+  if (g.isCheckmate()) facts.push('chiếu hết');
+  else if (g.inCheck()) facts.push('chiếu Vua');
+  const hits = [];
+  for (const row of g.board()) for (const p of row) {
+    if (p && p.color === opp && p.type !== 'p' && g.attackers(p.square, m.color).includes(m.to)) hits.push(`${PIECE_VN[p.type]} ${p.square}`);
+  }
+  if (hits.length) facts.push(`tấn công ${hits.join(', ')}`);
+  if (m.flags.includes('k') || m.flags.includes('q')) facts.push('nhập thành, đưa Vua vào nơi an toàn');
+  const uci = m.from + m.to + (m.promotion || '');
+  const i = v.lines.findIndex((l) => l.uci === uci);
+  const best = v.lines[0];
+  let head;
+  if (i === 0) head = `${b(m.san)} chính là nước tốt nhất theo Stockfish (${fmtCp(best.white)}).`;
+  else if (i > 0) head = `${b(m.san)} là lựa chọn tốt thứ ${i + 1} (${fmtCp(v.lines[i].white)}), gần bằng nước tốt nhất ${b(best.first)} (${fmtCp(best.white)}).`;
+  else if (best) head = `${b(m.san)} không nằm trong 3 nước tốt nhất. Stockfish thích ${b(best.first)} (${fmtCp(best.white)}) hơn.`;
+  else head = `Stockfish chưa kịp phân tích thế này.`;
+  const lines = [head];
+  if (facts.length) lines.push(`Nước ${m.san} ${facts.join(', ')}.`);
+  if (i >= 0) lines.push(`Diễn biến Stockfish tính: ${v.lines[i].line}.`);
+  else if (best) lines.push(`Diễn biến với ${best.first}: ${best.line}.`);
+  return lines.join('\n');
+}
+
 /* Answer a question about the viewed position (markdown-ish text). */
 export function localAnswer(q, v) {
   const intent = intentOf(q);
   if (v.helpBlocked && ['best', 'eval'].includes(intent)) {
     return `${v.blockReason}\nNguyên tắc chung: kiểm tra chiếu, ăn quân, đe dọa; phát triển quân và giữ Vua an toàn.`;
   }
+  // "Why Nc4?": a move named in the question gets its own explanation (unless it is the move just played).
+  const named = !v.helpBlocked && mentionedMove(q, v);
+  if (named && intent !== 'rules') return moveAnswer(named, v);
   switch (intent) {
     case 'best': return bestText(v);
     case 'eval': return evalAnswer(v);

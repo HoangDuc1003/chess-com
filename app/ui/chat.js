@@ -196,7 +196,7 @@ async function ask(q) {
       const p = ai.provider;
       reply.src = `${PROVIDERS[p].short} · ${modelOf(p)}`;
       const system = `${SYSTEM_PROMPT}\n\n=== DỮ LIỆU THẾ CỜ ===\n${describe(v)}`;
-      for await (const chunk of streamReply({ provider: p, key: ai.keys[p], model: modelOf(p), system, messages: history(), signal: ctrl.signal })) {
+      for await (const chunk of streamReply({ provider: p, key: ai.keys[p], model: modelOf(p), system, messages: history(), signal: ctrl.signal, onModel: (m) => { reply.src = `${PROVIDERS[p].short} · ${m}`; } })) {
         reply.text += chunk;
         reply.pending = false;
         renderLast();

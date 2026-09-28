@@ -39,12 +39,48 @@ async function failure(res, provider, model) {
   if (s === 401 || s === 403) return new ChatError('API key không hợp lệ hoặc chưa được cấp quyền.', { status: s });
   if (s === 404) return new ChatError(`Không tìm thấy model "${model}". Sửa tên model trong phần cài đặt.`, { status: s });
   if (s === 429) return new ChatError('Hết lượt dùng hoặc hỏi quá nhanh. Đợi một chút rồi hỏi lại.', { status: s });
-  if (s === 529 || s === 503) return new ChatError(`${PROVIDERS[provider].short} đang quá tải, thử lại sau.`, { status: s });
+  if (s === 529 || s === 503 || s === 500) return new ChatError(`${PROVIDERS[provider].short} đang quá tải, thử lại sau.`, { status: s });
   return new ChatError(`Lỗi ${s}${msg ? ': ' + msg : ''}`, { status: s });
 }
 
 /* messages: [{ role: 'user' | 'assistant', text }], alternating and ending with the user's question. */
-export async function* streamReply({ provider, key, model, system, messages, signal }) {
+/* Gemini models to fall back to, in order, when the chosen one is overloaded or unavailable. */
+const GEMINI_FALLBACKS = ['gemini-3.5-flash', 'gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
+const busyStatus = (s) => s === 429 || s === 500 || s === 503 || s === 529;
+const wait = (ms, signal) => new Promise((res, rej) => {
+  const t = setTimeout(res, ms);
+  signal && signal.addEventListener('abort', () => { clearTimeout(t); rej(new DOMException('Aborted', 'AbortError')); }, { once: true });
+});
+
+/* Like streamOnce, but when Gemini is overloaded it retries once and then tries other Flash models.
+   onModel(model) reports the model that actually answered. Nothing is retried once text has arrived. */
+export async function* streamReply(opts) {
+  const models = [opts.model];
+  if (opts.provider === 'gemini') for (const m of GEMINI_FALLBACKS) if (!models.includes(m)) models.push(m);
+  let lastErr = null;
+  for (let i = 0; i < models.length; i++) {
+    for (let attempt = 0; attempt < (i === 0 ? 2 : 1); attempt++) {
+      let started = false;
+      try {
+        for await (const chunk of streamOnce({ ...opts, model: models[i] })) {
+          if (!started) { started = true; opts.onModel && opts.onModel(models[i]); }
+          yield chunk;
+        }
+        return;
+      } catch (e) {
+        if (started || e.name === 'AbortError' || e.network) throw e;
+        lastErr = e;
+        const retry = busyStatus(e.status) || (e.status === 404 && i + 1 < models.length);
+        if (!retry || opts.provider !== 'gemini') throw e;
+        if (e.status === 404) break;
+        await wait(attempt === 0 && i === 0 ? 900 : 300, opts.signal);
+      }
+    }
+  }
+  throw lastErr;
+}
+
+async function* streamOnce({ provider, key, model, system, messages, signal }) {
   let res;
   try {
     if (provider === 'gemini') {
