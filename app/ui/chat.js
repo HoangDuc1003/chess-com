@@ -7,7 +7,7 @@ import { analyzeSoon } from '../analysis/scheduler.js';
 import { fmtCp } from '../analysis/review.js';
 import { describe, engineLines, SYSTEM_PROMPT, viewInfo } from '../ai/context.js';
 import { localAnswer } from '../ai/local.js';
-import { PROVIDERS, streamReply } from '../ai/providers.js';
+import { providerForKey, PROVIDERS, streamReply } from '../ai/providers.js';
 import { arrows, board } from './main-board.js';
 
 const AI_STORE = 'dau-stockfish-ai';
@@ -99,15 +99,28 @@ function renderLast() {
 }
 function renderSettings() {
   const p = ai.provider;
-  $('#aiProv').textContent = PROVIDERS[p].vn + (p !== 'local' && !ai.keys[p] ? ' · chưa có key' : '');
+  $('#aiProv').textContent = PROVIDERS[p].vn + (p === 'local' ? '' : ai.keys[p] ? ` · ${modelOf(p)}` : ' · chưa có key');
   const who = p === 'gemini' ? 'Google' : p === 'nvidia' ? 'NVIDIA (qua máy chủ của trang, không lưu lại)' : 'Anthropic';
   $('#aiOpts').innerHTML = `<div class="segs">${Object.entries(PROVIDERS).map(([id, x]) => `<button type="button" data-ai="prov" data-v="${id}" aria-pressed="${p === id}">${x.short}</button>`).join('')}</div>`
     + (p === 'local'
       ? '<p class="note">Trả lời tức thì bằng Stockfish, không cần mạng hay tài khoản. Hiểu các câu hỏi thường gặp: nước tốt nhất, ai đang hơn, vì sao nước vừa rồi sai, quân bị đe dọa, khai cuộc, kế hoạch, luật.</p>'
+        + '<label class="fld">Có API key? Dán vào đây, app tự nhận ra NVIDIA / Gemini / Claude<input type="password" id="aiKey" autocomplete="off" spellcheck="false" placeholder="nvapi-… / AIza… / sk-ant-…"></label>'
       : `<label class="fld">API key<input type="password" id="aiKey" autocomplete="off" spellcheck="false" placeholder="Dán key vào đây" value="${esc(ai.keys[p] || '')}"></label>
          <label class="fld">Model<input type="text" id="aiModel" spellcheck="false" value="${esc(modelOf(p))}"></label>
          <p class="note">${PROVIDERS[p].keyHint}. Lấy key tại <a href="${PROVIDERS[p].keyUrl}" target="_blank" rel="noopener">${PROVIDERS[p].keyUrl.replace('https://', '')}</a>. Key chỉ lưu trong trình duyệt này và gửi thẳng tới ${who}. Nếu AI lỗi hoặc mất mạng, trợ lý offline sẽ trả lời thay.</p>`)
     + '<button type="button" class="btn ghost" data-ai="clear">Xóa cuộc trò chuyện</button>';
+}
+function setKey(value) {
+  const key = value.trim();
+  const found = providerForKey(key);
+  const p = found || ai.provider;
+  if (p === 'local') return;
+  const switched = p !== ai.provider;
+  ai.keys[p] = key;
+  ai.provider = p;
+  saveAi();
+  if (switched) renderSettings();
+  $('#aiProv').textContent = PROVIDERS[p].vn + (key ? ` · ${modelOf(p)}` : ' · chưa có key');
 }
 function setBusy(on) {
   const b = $('#aiSend');
@@ -139,9 +152,11 @@ function build() {
     else if (t.dataset.ai === 'prov') { ai.provider = t.dataset.v; saveAi(); renderSettings(); }
     else if (t.dataset.ai === 'clear') { if (busy) busy.abort(); ai.log = []; saveAi(); renderLog(); }
   });
+  // Pasting a key is enough: its prefix tells which service it is for, and that service is selected.
+  pane.addEventListener('input', (e) => { if (e.target.id === 'aiKey' && providerForKey(e.target.value)) setKey(e.target.value); });
   pane.addEventListener('change', (e) => {
     const p = ai.provider;
-    if (e.target.id === 'aiKey') { ai.keys[p] = e.target.value.trim(); saveAi(); $('#aiProv').textContent = PROVIDERS[p].vn + (ai.keys[p] ? '' : ' · chưa có key'); }
+    if (e.target.id === 'aiKey') setKey(e.target.value);
     if (e.target.id === 'aiModel') { ai.models[p] = e.target.value.trim() || PROVIDERS[p].model; saveAi(); }
   });
   built = true;

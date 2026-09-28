@@ -4,9 +4,18 @@
 export const PROVIDERS = {
   local: { vn: 'Stockfish (offline)', short: 'Offline' },
   gemini: { vn: 'Google Gemini', short: 'Gemini', model: 'gemini-flash-latest', keyUrl: 'https://aistudio.google.com/apikey', keyHint: 'Có gói miễn phí' },
-  nvidia: { vn: 'NVIDIA (build.nvidia.com)', short: 'NVIDIA', model: 'deepseek-ai/deepseek-v4.1-flash', keyUrl: 'https://build.nvidia.com', keyHint: 'Có credit miễn phí khi đăng ký' },
+  nvidia: { vn: 'NVIDIA (build.nvidia.com)', short: 'NVIDIA', model: 'deepseek-ai/deepseek-v4.1-flash', keyUrl: 'https://build.nvidia.com/settings/api-keys', keyHint: 'Có credit miễn phí khi đăng ký' },
   claude: { vn: 'Anthropic Claude', short: 'Claude', model: 'claude-haiku-4-5-20251001', keyUrl: 'https://console.anthropic.com/settings/keys', keyHint: 'Trả phí theo lượt dùng' },
 };
+
+/* Which service a pasted key belongs to, from its prefix (null if unknown). */
+export function providerForKey(k) {
+  k = (k || '').trim();
+  if (/^nvapi-/.test(k)) return 'nvidia';
+  if (/^sk-ant-/.test(k)) return 'claude';
+  if (/^(AIza|AQ\.)/.test(k)) return 'gemini';
+  return null;
+}
 
 export class ChatError extends Error {
   constructor(message, { status = 0, network = false } = {}) { super(message); this.status = status; this.network = network; }
