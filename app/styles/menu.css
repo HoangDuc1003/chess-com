@@ -1,0 +1,84 @@
+/* Main menu (sidebar, icon rail, phone drawer) and the phone bottom toolbar. */
+/* ---------- main menu: rail on laptops, full sidebar on wide screens, drawer on phones ---------- */
+.nav{position:fixed;left:0;top:0;bottom:0;z-index:140;width:var(--nav-w);background:var(--panel-2);display:flex;flex-direction:column;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding:10px 0}
+.nav::-webkit-scrollbar{display:none}
+.nav-head{display:flex;align-items:center;justify-content:center;gap:8px;padding:2px 10px 12px}
+.nav-brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;min-width:0;border-radius:8px}
+.nav-brand .mark{width:34px;height:34px;border-radius:8px;background:var(--green);display:grid;place-items:center;box-shadow:inset 0 -3px 0 var(--green-sh);flex:none}
+.nav-brand .mark i{width:27px;height:27px;background-size:100% 100%}
+.nav-brand b{display:none;font-weight:800;font-size:18px;letter-spacing:-.015em;white-space:nowrap}
+.nav-x{display:none;place-items:center;width:40px;height:40px;border:0;border-radius:8px;background:transparent;color:var(--ink-2)}
+.nav-x:hover{background:var(--raise);color:var(--ink)}
+.nav-x svg{width:22px;height:22px}
+.nav-list{display:grid;gap:2px;padding:0 6px}
+.nav-foot{margin-top:auto;display:grid;gap:2px;padding:10px 6px 0}
+.nav-i{position:relative;width:100%;border:0;background:transparent;color:var(--ink-2);text-decoration:none;display:grid;justify-items:center;align-items:center;gap:3px;padding:8px 2px 7px;border-radius:8px;font-weight:700;font-size:10.5px;line-height:1.2;text-align:center}
+.nav-i svg{width:24px;height:24px;flex:none}
+.nav-i .l{display:none}
+.nav-i:hover{background:var(--raise);color:var(--ink)}
+.nav-i[aria-current="page"]{background:var(--raise);color:var(--ink)}
+.nav-i[aria-current="page"]::before{content:"";position:absolute;left:-6px;top:9px;bottom:9px;width:4px;border-radius:0 3px 3px 0;background:var(--green)}
+.nav-i[aria-current="page"] svg{color:var(--green-h)}
+.nav-i .off,.nav-i.muted .on{display:none}
+.nav-i.muted .off{display:inline}
+.nav-i.muted{color:var(--muted)}
+:root.nav-open body{overflow:hidden}
+.nav hr{border:0;border-top:1px solid var(--line);margin:8px 6px}
+.nav-i[data-nav="collapse"] svg{transition:transform .2s}
+:root.nav-mini .nav-i[data-nav="collapse"] svg{transform:rotate(180deg)}
+
+@media (max-width:1359px),(max-height:560px){
+  .nav-i[data-nav="collapse"]{display:none}
+}
+
+@media (min-width:1360px) and (min-height:561px){
+  :root:not(.nav-mini) .nav-head{justify-content:flex-start;padding:2px 18px 14px}
+  :root:not(.nav-mini) .nav-list,:root:not(.nav-mini) .nav-foot{padding-inline:8px}
+  :root:not(.nav-mini) .nav-i[aria-current="page"]::before{left:-8px}
+  :root:not(.nav-mini) .nav-brand b{display:block}
+  :root:not(.nav-mini) .nav-i{grid-template-columns:24px minmax(0,1fr);justify-items:start;gap:12px;padding:10px 12px;font-size:15px;text-align:left}
+  :root:not(.nav-mini) .nav-i .l{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  :root:not(.nav-mini) .nav-i .s{display:none}
+}
+.scrim{position:fixed;inset:0;z-index:138;background:rgba(0,0,0,.55);animation:fadein .2s ease}
+@keyframes fadein{from{opacity:0}}
+
+/* phone toolbar (hidden on desktop) */
+.mbar{display:none}
+.more{position:fixed;z-index:120;right:8px;bottom:calc(64px + env(safe-area-inset-bottom,0px));background:var(--panel);border:1px solid var(--line-2);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.5);padding:6px;display:grid;min-width:200px}
+.more button{border:0;background:transparent;text-align:left;padding:11px 12px;border-radius:6px;font-weight:600;display:flex;gap:10px;align-items:center}
+.more button:hover{background:var(--raise)}
+.more svg{width:18px;height:18px}
+
+/* phones and tablets, portrait */
+@media (max-width:979px) and (min-height:561px), (max-width:599px){
+  .nav{width:min(86vw,304px);background:var(--panel);transform:translateX(-102%);visibility:hidden;transition:transform .22s ease,visibility 0s linear .22s;box-shadow:10px 0 36px rgba(0,0,0,.55);padding:calc(8px + env(safe-area-inset-top,0px)) 0 calc(12px + env(safe-area-inset-bottom,0px))}
+  :root.nav-open .nav{transform:none;visibility:visible;transition:transform .22s ease}
+  .nav-head{justify-content:space-between;padding:2px 8px 10px 16px}
+  .nav-brand b{display:block}
+  .nav-x{display:grid}
+  .nav-list,.nav-foot{padding-inline:10px}
+  .nav-i{grid-template-columns:24px minmax(0,1fr);justify-items:start;gap:14px;padding:12px;font-size:15.5px;text-align:left}
+  .nav-i .l{display:block}
+  .nav-i .s{display:none}
+  .nav-i[aria-current="page"]::before{left:-10px}
+  .mbar{display:flex;gap:6px;position:fixed;left:0;right:0;bottom:0;z-index:110;padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px));background:rgba(33,32,29,.97);border-top:1px solid var(--line);backdrop-filter:blur(6px)}
+  .mbar .btn{flex:1 1 0;padding:10px 0;min-height:44px;min-width:0}
+  .mbar .btn.go{flex:1.8 1 0}
+  .mbar .btn span{font-size:13px}
+}
+
+/* phones, landscape */
+@media (orientation:landscape) and (max-height:560px){
+  .nav{padding:6px 0 6px env(safe-area-inset-left,0px);width:var(--nav-w);transform:none;visibility:visible;box-shadow:none;background:var(--panel-2)}
+  .nav-head{display:none}
+  .nav-i{grid-template-columns:none;justify-items:center;gap:0}
+  .nav-i .l{display:none}
+  .nav-list{padding:0 6px;gap:0}
+  .nav-foot{padding:4px 6px 0}
+  .nav-i{padding:6px 0}
+  .nav-i svg{width:22px;height:22px}
+  .nav-i .s{display:none}
+  .nav-i[aria-current="page"]::before{left:-6px}
+  .nav hr{margin:2px 4px}
+}

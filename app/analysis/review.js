@@ -1,8 +1,8 @@
 // Move classification and plain-language feedback.
 // Losses are measured in win probability (the lichess formula), so a lost pawn matters
 // a lot in a balanced position and very little when the game is already decided.
-import { Chess } from '../lib/chess.js';
-import { scoreCp } from './bots.js';
+import { Chess } from '../../lib/chess.js';
+import { scoreCp } from '../game/bots.js';
 
 export const VAL = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
 export const PIECE_VN = { p: 'tốt', n: 'Mã', b: 'Tượng', r: 'Xe', q: 'Hậu', k: 'Vua' };

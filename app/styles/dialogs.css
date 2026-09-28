@@ -1,0 +1,88 @@
+/* Overlays: end-of-game summary, stats and help dialogs. */
+/* board overlay: game summary */
+.over{position:absolute;inset:0;z-index:30;display:grid;place-items:center;background:rgba(0,0,0,.5);border-radius:4px;padding:16px}
+.sum{background:var(--panel);border-radius:12px;width:min(100%,360px);box-shadow:0 16px 48px rgba(0,0,0,.55);overflow:hidden}
+.sum-head{padding:18px 20px 14px;text-align:center;background:var(--panel-2)}
+.sum-head h2{margin:0;font-size:25px;font-weight:800;letter-spacing:-.015em;text-wrap:balance}
+.sum-head p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.sum-body{padding:14px 18px 18px;display:grid;gap:12px}
+.acc2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.acc2 div{background:var(--panel-2);border-radius:8px;padding:10px;text-align:center}
+.acc2 small{display:block;color:var(--muted);font-size:12px}
+.acc2 b{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+.ctab{display:grid;grid-template-columns:auto 1fr auto auto;gap:4px 10px;align-items:center;font-size:13.5px}
+.ctab .n{font-weight:700;text-align:right;font-variant-numeric:tabular-nums;min-width:1.4em}
+.ctab .h{color:var(--muted);font-size:12px;text-align:right}
+.ctab svg{display:block}
+.sum-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.progress{height:6px;border-radius:3px;background:var(--deep);overflow:hidden}
+.progress i{display:block;height:100%;background:var(--green);width:0;transition:width .3s}
+
+/* ---------- dialogs: stats and help ---------- */
+.sheet{border:0;padding:0;background:var(--panel);color:var(--ink);border-radius:14px;width:min(600px,calc(100vw - 24px));max-width:none;max-height:min(88vh,820px);box-shadow:0 24px 64px rgba(0,0,0,.6);overflow:hidden}
+.sheet[open]{display:flex;flex-direction:column;animation:sheetin .22s cubic-bezier(.2,1,.4,1)}
+@keyframes sheetin{from{transform:translateY(12px);opacity:0}}
+.sheet::backdrop{background:rgba(0,0,0,.6)}
+.sheet-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 12px 12px 20px;background:var(--panel-2);flex:none}
+.sheet-h h2{margin:0;font-size:20px;font-weight:800;letter-spacing:-.01em}
+.sheet-x{display:grid;place-items:center;width:40px;height:40px;border:0;border-radius:8px;background:transparent;color:var(--ink-2)}
+.sheet-x:hover{background:var(--raise);color:var(--ink)}
+.sheet-x svg{width:22px;height:22px}
+.sheet-b{overflow:auto;padding:16px 20px 22px;display:grid;gap:14px;align-content:start;overscroll-behavior:contain}
+.sheet-b h3{margin:4px 0 0;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.sheet-b p{margin:0;font-size:14px;color:var(--ink-2)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kpis div{background:var(--panel-2);border-radius:8px;padding:10px 8px;text-align:center;min-width:0}
+.kpis small{display:block;color:var(--muted);font-size:12px}
+.kpis b{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+.wdl{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--deep);gap:2px}
+.wdl i{display:block;min-width:0}
+.wdl .w{background:var(--green)}
+.wdl .d{background:#8a8781}
+.wdl .l{background:var(--bad)}
+.wdl-k{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--ink-2);margin-top:-6px}
+.wdl-k b{font-variant-numeric:tabular-nums}
+.wdl-k i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px}
+.spark{display:block;width:100%;height:56px;background:var(--panel-2);border-radius:8px}
+.vs{display:grid;gap:4px}
+.vs-r{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--panel-2);border-radius:8px;padding:6px 10px}
+.vs-r .ava{width:32px;height:32px}
+.vs-r .ava i{width:28px;height:28px}
+.vs-r b{font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vs-r small{color:var(--muted);font-size:12px}
+.vs-r .sc{display:flex;gap:4px;font-size:12.5px;font-weight:800;font-variant-numeric:tabular-nums}
+.vs-r .sc span{padding:2px 7px;border-radius:4px;background:var(--raise)}
+.vs-r .sc .w{background:#2f4a22;color:#b9e08f}
+.vs-r .sc .l{background:#4a2420;color:#ffab9f}
+.gl{display:grid;gap:4px}
+.gl-r{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--panel-2);border-radius:8px;padding:8px 10px;font-size:13.5px}
+.gl-r .res{font-weight:800;font-size:12.5px;text-align:center;border-radius:5px;padding:3px 0}
+.gl-r .res.w{background:var(--green);color:#fff}
+.gl-r .res.d{background:#6b6964;color:#fff}
+.gl-r .res.l{background:var(--bad);color:#fff}
+.gl-r .who3{min-width:0}
+.gl-r .who3 b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gl-r .who3 small{color:var(--muted);font-size:12px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gl-r .ac{font-weight:800;font-variant-numeric:tabular-nums;text-align:right}
+.gl-r .ac small{display:block;color:var(--muted);font-weight:600;font-size:11px}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;align-items:center;font-size:14px;color:var(--ink-2)}
+kbd{display:inline-block;min-width:26px;text-align:center;font:700 12.5px var(--font);padding:3px 7px;border-radius:5px;background:var(--raise);color:var(--ink);box-shadow:inset 0 -2px 0 rgba(0,0,0,.35)}
+.legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px;font-size:13.5px;color:var(--ink-2)}
+.legend span{display:flex;align-items:center;gap:8px}
+.legend svg{flex:none}
+.sheet .fine a{color:var(--green-h)}
+
+/* phones and tablets, portrait */
+@media (max-width:979px) and (min-height:561px), (max-width:599px){
+  .sheet{width:100%;max-width:100%;margin:auto 0 0;border-radius:16px 16px 0 0;max-height:90vh}
+  .sheet-b{padding:14px 16px calc(20px + env(safe-area-inset-bottom,0px))}
+  .kpis b{font-size:21px}
+  .over{position:fixed;inset:0;z-index:130;border-radius:0;overflow:auto;padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px))}
+}
+
+/* use the dynamic viewport height where supported (mobile browser bars) */
+@supports (height:100dvh){
+  @media (max-width:979px) and (min-height:561px), (max-width:599px){
+    .sheet{max-height:90dvh}
+  }
+}

@@ -20,38 +20,72 @@
 <link rel="preload" href="fonts/be-vietnam-pro-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/be-vietnam-pro-vietnamese-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
-<link rel="stylesheet" href="app/style.css">
-<link rel="stylesheet" href="app/pieces.css">
+<link rel="stylesheet" href="app/styles/base.css">
+<link rel="stylesheet" href="app/styles/layout.css">
+<link rel="stylesheet" href="app/styles/board.css">
+<link rel="stylesheet" href="app/styles/panes.css">
+<link rel="stylesheet" href="app/styles/menu.css">
+<link rel="stylesheet" href="app/styles/dialogs.css">
+<link rel="stylesheet" href="app/styles/pieces.css">
 </head>
 <body>
 <!--BODY-->
+<!-- Icons, used as <svg><use href="#i-name"/></svg> -->
+<svg class="sprite" aria-hidden="true" width="0" height="0" style="position:absolute">
+  <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2a2.9 2.9 0 0 0-1.9 5.1C8.9 9 8.2 10 8.2 11.3h7.6c0-1.3-.7-2.3-1.9-3A2.9 2.9 0 0 0 12 3.2z"/><path d="M9.6 11.3c0 2.9-1.3 5-2.9 6.6h10.6c-1.6-1.6-2.9-3.7-2.9-6.6"/><path d="M5.5 20.8h13"/></symbol>
+  <symbol id="i-puzzle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3h4v2.5a1.5 1.5 0 1 0 3 0V3h4v7h-2.5a1.5 1.5 0 1 0 0 3H21v8h-7v-2.5a1.5 1.5 0 1 0-3 0V21H3v-8h2.5a1.5 1.5 0 1 0 0-3H3V3h7z"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5c3-1.6 6.2-1.6 9 .6 2.8-2.2 6-2.2 9-.6v13c-3-1.6-6.2-1.6-9 .6-2.8-2.2-6-2.2-9-.6z"/><path d="M12 6v13"/></symbol>
+  <symbol id="i-lesson" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M6 10.5V16c2 2 10 2 12 0v-5.5"/></symbol>
+  <symbol id="i-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16.5h5"/></symbol>
+  <symbol id="i-new-game" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></symbol>
+  <symbol id="i-stats" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20v-8M11 20V5M17 20v-5M3 20h18"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .8-1 1.5v.5M12 17h.01"/></symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5l4.5 3.8V5.7L7.5 9.5z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18.2 6.4a8 8 0 0 1 0 11.2"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5l4.5 3.8V5.7L7.5 9.5z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></symbol>
+  <symbol id="i-install" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 20h14"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 4l-3 16"/></symbol>
+  <symbol id="i-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 7l-5 5 5 5M18 7l-5 5 5 5"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-moves" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></symbol>
+  <symbol id="i-first" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6l-6 6 6 6M7 6v12"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-last" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l6 6-6 6M17 6v12"/></symbol>
+  <symbol id="i-hint" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol>
+  <symbol id="i-flip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M7 4L3 8M7 4l4 4M17 20V4M17 20l-4-4M17 20l4-4"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></symbol>
+</svg>
 <nav class="nav" id="nav" aria-label="Menu chính">
   <div class="nav-head">
     <a class="nav-brand" href="./" aria-label="Đấu Stockfish, về trang chơi"><span class="mark"><i class="wn"></i></span><b>Đấu Stockfish</b></a>
-    <button class="nav-x" type="button" data-nav="close" aria-label="Đóng menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <button class="nav-x" type="button" data-nav="close" aria-label="Đóng menu"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
   </div>
   <div class="nav-list">
-    <button class="nav-i" type="button" data-go="play" title="Chơi với máy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2a2.9 2.9 0 0 0-1.9 5.1C8.9 9 8.2 10 8.2 11.3h7.6c0-1.3-.7-2.3-1.9-3A2.9 2.9 0 0 0 12 3.2z"/><path d="M9.6 11.3c0 2.9-1.3 5-2.9 6.6h10.6c-1.6-1.6-2.9-3.7-2.9-6.6"/><path d="M5.5 20.8h13"/></svg><span class="l">Chơi với máy</span><span class="s">Chơi</span></button>
-    <button class="nav-i" type="button" data-go="puzz" title="Giải đố"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3h4v2.5a1.5 1.5 0 1 0 3 0V3h4v7h-2.5a1.5 1.5 0 1 0 0 3H21v8h-7v-2.5a1.5 1.5 0 1 0-3 0V21H3v-8h2.5a1.5 1.5 0 1 0 0-3H3V3h7z"/></svg><span class="l">Giải đố</span><span class="s">Giải đố</span></button>
-    <button class="nav-i" type="button" data-go="open" title="Khai cuộc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5c3-1.6 6.2-1.6 9 .6 2.8-2.2 6-2.2 9-.6v13c-3-1.6-6.2-1.6-9 .6-2.8-2.2-6-2.2-9-.6z"/><path d="M12 6v13"/></svg><span class="l">Khai cuộc</span><span class="s">Khai cuộc</span></button>
-    <button class="nav-i" type="button" data-go="dict" title="Từ điển lỗi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M6 10.5V16c2 2 10 2 12 0v-5.5"/></svg><span class="l">Từ điển lỗi</span><span class="s">Từ điển</span></button>
-    <button class="nav-i" type="button" data-go="bots" title="Đối thủ &amp; cài đặt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16.5h5"/></svg><span class="l">Đối thủ &amp; cài đặt</span><span class="s">Đối thủ</span></button>
+    <button class="nav-i" type="button" data-go="play" title="Chơi với máy"><svg aria-hidden="true"><use href="#i-play"/></svg><span class="l">Chơi với máy</span><span class="s">Chơi</span></button>
+    <button class="nav-i" type="button" data-go="puzz" title="Giải đố"><svg aria-hidden="true"><use href="#i-puzzle"/></svg><span class="l">Giải đố</span><span class="s">Giải đố</span></button>
+    <button class="nav-i" type="button" data-go="open" title="Khai cuộc"><svg aria-hidden="true"><use href="#i-book"/></svg><span class="l">Khai cuộc</span><span class="s">Khai cuộc</span></button>
+    <button class="nav-i" type="button" data-go="dict" title="Từ điển lỗi"><svg aria-hidden="true"><use href="#i-lesson"/></svg><span class="l">Từ điển lỗi</span><span class="s">Từ điển</span></button>
+    <button class="nav-i" type="button" data-go="bots" title="Đối thủ &amp; cài đặt"><svg aria-hidden="true"><use href="#i-bot"/></svg><span class="l">Đối thủ &amp; cài đặt</span><span class="s">Đối thủ</span></button>
     <hr>
-    <button class="nav-i" type="button" data-nav="newgame" title="Ván mới"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span class="l">Ván mới</span><span class="s">Ván mới</span></button>
-    <button class="nav-i" type="button" data-nav="stats" title="Thống kê"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-8M11 20V5M17 20v-5M3 20h18"/></svg><span class="l">Thống kê</span><span class="s">Thống kê</span></button>
-    <button class="nav-i" type="button" data-nav="help" title="Hướng dẫn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .8-1 1.5v.5M12 17h.01"/></svg><span class="l">Hướng dẫn</span><span class="s">Hướng dẫn</span></button>
-    <button class="nav-i" type="button" data-nav="sound" title="Âm thanh: bật"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5v5h3.5l4.5 3.8V5.7L7.5 9.5z"/><path class="wave" d="M15.5 9a4.2 4.2 0 0 1 0 6M18.2 6.4a8 8 0 0 1 0 11.2"/><path class="slash" d="M16 9.5l5 5M21 9.5l-5 5"/></svg><span class="l">Âm thanh: bật</span><span class="s">Âm thanh</span></button>
-    <button class="nav-i" type="button" data-nav="install" title="Cài ứng dụng" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 20h14"/></svg><span class="l">Cài ứng dụng</span><span class="s">Cài app</span></button>
+    <button class="nav-i" type="button" data-nav="newgame" title="Ván mới"><svg aria-hidden="true"><use href="#i-new-game"/></svg><span class="l">Ván mới</span><span class="s">Ván mới</span></button>
+    <button class="nav-i" type="button" data-nav="stats" title="Thống kê"><svg aria-hidden="true"><use href="#i-stats"/></svg><span class="l">Thống kê</span><span class="s">Thống kê</span></button>
+    <button class="nav-i" type="button" data-nav="help" title="Hướng dẫn"><svg aria-hidden="true"><use href="#i-help"/></svg><span class="l">Hướng dẫn</span><span class="s">Hướng dẫn</span></button>
+    <button class="nav-i" type="button" data-nav="sound" title="Âm thanh: bật"><svg aria-hidden="true"><use class="on" href="#i-sound"/><use class="off" href="#i-mute"/></svg><span class="l">Âm thanh: bật</span><span class="s">Âm thanh</span></button>
+    <button class="nav-i" type="button" data-nav="install" title="Cài ứng dụng" hidden><svg aria-hidden="true"><use href="#i-install"/></svg><span class="l">Cài ứng dụng</span><span class="s">Cài app</span></button>
   </div>
   <div class="nav-foot">
-    <a class="nav-i" href="https://github.com/HoangDuc1003/chess-com" target="_blank" rel="noopener" title="Mã nguồn trên GitHub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 4l-3 16"/></svg><span class="l">Mã nguồn</span><span class="s">Mã nguồn</span></a>
-    <button class="nav-i" type="button" data-nav="collapse" aria-label="Thu gọn menu" title="Thu gọn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 7l-5 5 5 5M18 7l-5 5 5 5"/></svg><span class="l">Thu gọn</span><span class="s">Mở rộng</span></button>
+    <a class="nav-i" href="https://github.com/HoangDuc1003/chess-com" target="_blank" rel="noopener" title="Mã nguồn trên GitHub"><svg aria-hidden="true"><use href="#i-code"/></svg><span class="l">Mã nguồn</span><span class="s">Mã nguồn</span></a>
+    <button class="nav-i" type="button" data-nav="collapse" aria-label="Thu gọn menu" title="Thu gọn"><svg aria-hidden="true"><use href="#i-collapse"/></svg><span class="l">Thu gọn</span><span class="s">Mở rộng</span></button>
   </div>
 </nav>
 <div class="scrim" id="scrim" hidden></div>
 <div class="app">
   <header class="top">
-    <button class="burger" type="button" id="btnMenu" aria-label="Mở menu" aria-controls="nav" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <button class="burger" type="button" id="btnMenu" aria-label="Mở menu" aria-controls="nav" aria-expanded="false"><svg aria-hidden="true"><use href="#i-menu"/></svg></button>
     <div class="brand"><span class="mark"><i class="wn"></i></span><b>Đấu Stockfish</b><span>Chơi với máy, học trong lúc chơi</span></div>
     <div class="ptitle"><h1 id="pageTitle">Chơi với máy</h1><span id="pageSub"></span></div>
     <div class="top-r">
@@ -76,11 +110,11 @@
 
     <aside class="side" aria-label="Bảng điều khiển">
       <nav class="tabs" role="tablist" id="tabs">
-        <button role="tab" data-tab="play" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Ván đấu</button>
-        <button role="tab" data-tab="open" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 5.5c3-1.6 6.2-1.6 9 .6 2.8-2.2 6-2.2 9-.6v13c-3-1.6-6.2-1.6-9 .6-2.8-2.2-6-2.2-9-.6z"/><path d="M12 6v13"/></svg>Khai cuộc</button>
-        <button role="tab" data-tab="puzz" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M10 3h4v2.5a1.5 1.5 0 1 0 3 0V3h4v7h-2.5a1.5 1.5 0 1 0 0 3H21v8h-7v-2.5a1.5 1.5 0 1 0-3 0V21H3v-8h2.5a1.5 1.5 0 1 0 0-3H3V3h7z"/></svg>Giải đố</button>
-        <button role="tab" data-tab="dict" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M6 10.5V16c2 2 10 2 12 0v-5.5"/></svg>Từ điển</button>
-        <button role="tab" data-tab="bots" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16.5h5"/></svg>Đối thủ</button>
+        <button role="tab" data-tab="play" type="button"><svg aria-hidden="true"><use href="#i-moves"/></svg>Ván đấu</button>
+        <button role="tab" data-tab="open" type="button"><svg aria-hidden="true"><use href="#i-book"/></svg>Khai cuộc</button>
+        <button role="tab" data-tab="puzz" type="button"><svg aria-hidden="true"><use href="#i-puzzle"/></svg>Giải đố</button>
+        <button role="tab" data-tab="dict" type="button"><svg aria-hidden="true"><use href="#i-lesson"/></svg>Từ điển</button>
+        <button role="tab" data-tab="bots" type="button"><svg aria-hidden="true"><use href="#i-bot"/></svg>Đối thủ</button>
       </nav>
       <div class="ostrip" id="ostrip" role="button" tabindex="0" title="Xem khai cuộc"></div>
       <div class="side-body" id="sideBody">
@@ -92,17 +126,17 @@
       </div>
       <footer class="foot">
         <div class="navrow">
-          <button class="btn" type="button" data-cmd="first" aria-label="Về đầu ván"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6l-6 6 6 6M7 6v12"/></svg></button>
-          <button class="btn" type="button" data-cmd="prev" aria-label="Nước trước (phím ←)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
-          <button class="btn" type="button" data-cmd="next" aria-label="Nước sau (phím →)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
-          <button class="btn" type="button" data-cmd="last" aria-label="Về nước hiện tại"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l6 6-6 6M17 6v12"/></svg></button>
+          <button class="btn" type="button" data-cmd="first" aria-label="Về đầu ván"><svg aria-hidden="true"><use href="#i-first"/></svg></button>
+          <button class="btn" type="button" data-cmd="prev" aria-label="Nước trước (phím ←)"><svg aria-hidden="true"><use href="#i-prev"/></svg></button>
+          <button class="btn" type="button" data-cmd="next" aria-label="Nước sau (phím →)"><svg aria-hidden="true"><use href="#i-next"/></svg></button>
+          <button class="btn" type="button" data-cmd="last" aria-label="Về nước hiện tại"><svg aria-hidden="true"><use href="#i-last"/></svg></button>
         </div>
         <div class="actrow">
-          <button class="btn go" type="button" data-cmd="hint" title="Gợi ý (phím H)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg><span data-hint-label>Gợi ý</span></button>
-          <button class="btn" type="button" data-cmd="undo" title="Đi lại (phím G)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>Đi lại</button>
-          <button class="btn" type="button" data-cmd="flip" title="Lật bàn cờ (phím F)" aria-label="Lật bàn cờ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M7 4L3 8M7 4l4 4M17 20V4M17 20l-4-4M17 20l4-4"/></svg></button>
-          <button class="btn" type="button" data-cmd="resign" title="Đầu hàng" aria-label="Đầu hàng"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg></button>
-          <button class="btn" type="button" data-cmd="newgame" title="Ván mới"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Ván mới</button>
+          <button class="btn go" type="button" data-cmd="hint" title="Gợi ý (phím H)"><svg aria-hidden="true"><use href="#i-hint"/></svg><span data-hint-label>Gợi ý</span></button>
+          <button class="btn" type="button" data-cmd="undo" title="Đi lại (phím G)"><svg aria-hidden="true"><use href="#i-undo"/></svg>Đi lại</button>
+          <button class="btn" type="button" data-cmd="flip" title="Lật bàn cờ (phím F)" aria-label="Lật bàn cờ"><svg aria-hidden="true"><use href="#i-flip"/></svg></button>
+          <button class="btn" type="button" data-cmd="resign" title="Đầu hàng" aria-label="Đầu hàng"><svg aria-hidden="true"><use href="#i-flag"/></svg></button>
+          <button class="btn" type="button" data-cmd="newgame" title="Ván mới"><svg aria-hidden="true"><use href="#i-plus"/></svg>Ván mới</button>
         </div>
       </footer>
     </aside>
@@ -110,18 +144,18 @@
 </div>
 
 <nav class="mbar" id="mbar" aria-label="Thanh công cụ">
-  <button class="btn go" type="button" data-cmd="hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg><span data-hint-label>Gợi ý</span></button>
-  <button class="btn" type="button" data-cmd="prev" aria-label="Nước trước"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
-  <button class="btn" type="button" data-cmd="next" aria-label="Nước sau"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
-  <button class="btn" type="button" data-cmd="undo" aria-label="Đi lại (phím G)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
-  <button class="btn" type="button" data-cmd="flip" aria-label="Lật bàn cờ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M7 4L3 8M7 4l4 4M17 20V4M17 20l-4-4M17 20l4-4"/></svg></button>
-  <button class="btn" type="button" data-cmd="more" aria-label="Thêm" aria-haspopup="menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+  <button class="btn go" type="button" data-cmd="hint"><svg aria-hidden="true"><use href="#i-hint"/></svg><span data-hint-label>Gợi ý</span></button>
+  <button class="btn" type="button" data-cmd="prev" aria-label="Nước trước"><svg aria-hidden="true"><use href="#i-prev"/></svg></button>
+  <button class="btn" type="button" data-cmd="next" aria-label="Nước sau"><svg aria-hidden="true"><use href="#i-next"/></svg></button>
+  <button class="btn" type="button" data-cmd="undo" aria-label="Đi lại (phím G)"><svg aria-hidden="true"><use href="#i-undo"/></svg></button>
+  <button class="btn" type="button" data-cmd="flip" aria-label="Lật bàn cờ"><svg aria-hidden="true"><use href="#i-flip"/></svg></button>
+  <button class="btn" type="button" data-cmd="more" aria-label="Thêm" aria-haspopup="menu" aria-expanded="false"><svg aria-hidden="true"><use href="#i-more"/></svg></button>
 </nav>
 <div class="more" id="moreMenu" role="menu" hidden>
-  <button type="button" role="menuitem" data-cmd="newgame"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Ván mới</button>
-  <button type="button" role="menuitem" data-cmd="resign"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>Đầu hàng</button>
-  <button type="button" role="menuitem" data-cmd="first"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6l-6 6 6 6M7 6v12"/></svg>Về đầu ván</button>
-  <button type="button" role="menuitem" data-cmd="last"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l6 6-6 6M17 6v12"/></svg>Về nước hiện tại</button>
+  <button type="button" role="menuitem" data-cmd="newgame"><svg aria-hidden="true"><use href="#i-plus"/></svg>Ván mới</button>
+  <button type="button" role="menuitem" data-cmd="resign"><svg aria-hidden="true"><use href="#i-flag"/></svg>Đầu hàng</button>
+  <button type="button" role="menuitem" data-cmd="first"><svg aria-hidden="true"><use href="#i-first"/></svg>Về đầu ván</button>
+  <button type="button" role="menuitem" data-cmd="last"><svg aria-hidden="true"><use href="#i-last"/></svg>Về nước hiện tại</button>
 </div>
 <dialog class="sheet" id="sheet" aria-labelledby="sheetTitle"></dialog>
 <!--/BODY-->

@@ -1,6 +1,6 @@
 // Board view: squares, pieces, highlights, arrows, badges, drag & drop, right-click annotations.
-import { Chess } from '../lib/chess.js';
-import { CLASSES } from './review.js';
+import { Chess } from '../../lib/chess.js';
+import { CLASSES } from '../analysis/review.js';
 
 const FILES = 'abcdefgh';
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -490,18 +490,10 @@ export class BoardView {
           this._tryMove(d.from, to, false);
           return;
         }
-        // Snap back to the starting square.
-        const [cx, cy] = this.center(d.from);
-        const b = this.sqEl.getBoundingClientRect();
-        const tx = b.left + (cx / 8) * b.width - d.size / 2;
-        const ty = b.top + (cy / 8) * b.height - d.size / 2;
-        const ghost = d.ghost;
-        if (d.touch) ghost.style.width = ghost.style.height = d.size + 'px';
+        // Not a legal square: the piece goes straight back to where it started (no slide, no pause).
         if (to && to !== d.from) this.opts.onIllegal && this.opts.onIllegal();
-        if (reduceMotion()) { ghost.remove(); this.render(); return; }
-        ghost.style.transition = 'transform .16s cubic-bezier(.2,.7,.3,1)';
-        requestAnimationFrame(() => { ghost.style.transform = `translate(${tx}px, ${ty}px)`; });
-        setTimeout(() => { ghost.remove(); this.render(); }, 170);
+        d.ghost.remove();
+        this.render();
       } else if (d.was) {
         this._select(null);
       }

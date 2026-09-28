@@ -1,13 +1,17 @@
 // Offline support. Bump VERSION when shipping changes to app files.
-const VERSION = 'v4';
+const VERSION = 'v5';
 const CORE = `core-${VERSION}`;
 const HEAVY = 'heavy-v1'; // engine, fonts, opening data: large and rarely changed
 
 const CORE_FILES = [
-  './', 'manifest.webmanifest',
-  'app/style.css', 'app/pieces.css', 'app/main.js', 'app/board.js', 'app/bots.js', 'app/engine.js',
-  'app/hash.js', 'app/lessons.js', 'app/openings.js', 'app/puzzles.js', 'app/review.js', 'app/sound.js',
-  'lib/chess.js', 'fonts/fonts.css', 'icons/icon-192.png', 'icons/favicon-32.png',
+  './', 'manifest.webmanifest', 'lib/chess.js', 'fonts/fonts.css', 'icons/icon-192.png', 'icons/favicon-32.png',
+  'app/main.js',
+  'app/analysis/engine.js', 'app/analysis/review.js', 'app/analysis/scheduler.js',
+  'app/content/hash.js', 'app/content/lessons.js', 'app/content/opening-guides.js', 'app/content/opening-library.js', 'app/content/openings.js', 'app/content/puzzles.js',
+  'app/core/config.js', 'app/core/state.js', 'app/core/storage.js', 'app/core/util.js',
+  'app/game/bots.js', 'app/game/clock.js', 'app/game/game.js', 'app/game/puzzle.js',
+  'app/ui/board.js', 'app/ui/controls.js', 'app/ui/dialogs.js', 'app/ui/main-board.js', 'app/ui/menu.js', 'app/ui/panes.js', 'app/ui/play-pane.js', 'app/ui/pwa.js', 'app/ui/render.js', 'app/ui/sim.js', 'app/ui/sound.js',
+  'app/styles/base.css', 'app/styles/layout.css', 'app/styles/board.css', 'app/styles/panes.css', 'app/styles/menu.css', 'app/styles/dialogs.css', 'app/styles/pieces.css',
 ];
 
 const HEAVY_FILES = ['data/openings.json', 'data/puzzles.json', 'icons/icon-512.png', 'icons/apple-touch-icon.png',

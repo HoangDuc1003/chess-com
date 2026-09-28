@@ -7,13 +7,14 @@ out = os.path.join(root, 'dist-artifact')
 shutil.rmtree(out, ignore_errors=True)
 html = open(os.path.join(root, 'index.html'), encoding='utf-8').read()
 body = re.search(r'<!--BODY-->(.*)<!--/BODY-->', html, re.S).group(1)
-css = open(os.path.join(root, 'app/style.css'), encoding='utf-8').read()
-pieces = open(os.path.join(root, 'app/pieces.css'), encoding='utf-8').read()
+# Inline the app stylesheets in the order index.html links them.
+css = '\n'.join(open(os.path.join(root, href), encoding='utf-8').read()
+                for href in re.findall(r'<link rel="stylesheet" href="(app/[^"]+\.css)">', html))
 page = ('<title>Đấu Stockfish</title>\n'
         '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
         '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">\n'
-        f'<style>\n{css}\n{pieces}\n</style>\n{body}\n<script type="module" src="app/main.js"></script>\n')
+        f'<style>\n{css}\n</style>\n{body}\n<script type="module" src="app/main.js"></script>\n')
 os.makedirs(out)
 open(os.path.join(out, 'dau-stockfish.html'), 'w', encoding='utf-8').write(page)
 for d in ('app', 'lib', 'data'):

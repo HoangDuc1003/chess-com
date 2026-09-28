@@ -1,0 +1,42 @@
+/* Base: colour tokens, board themes, reset, buttons and small text styles. */
+:root{color-scheme:dark;
+  --bg:#302e2b; --panel:#262522; --panel-2:#21201d; --deep:#1b1a18;
+  --raise:#3a3835; --raise-h:#46433f; --line:#3b3935; --line-2:#4a4743;
+  --ink:#f1f0ee; --ink-2:#cfcdca; --muted:#a09d98; --faint:#7a7771;
+  --green:#7fb04a; --green-h:#93c35a; --green-sh:#557a2f;
+  --sq-l:#ebecd0; --sq-d:#739552; --lm-l:#f4f47c; --lm-d:#b9c943;
+  --gold:#e6b33a; --bad:#e8412f;
+  --font:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --nav-w:76px; --side:420px;
+  /* board size: what is left after the menu, page padding (32), eval bar (28), gap (18) and side panel */
+  --bs:min(calc(100vh - 176px),calc(100vw - var(--nav-w) - 80px - var(--side)),760px);
+  --eb:20px; --gap:8px;}
+:root[data-board="brown"]{--sq-l:#f0d9b5;--sq-d:#b58863;--lm-l:#f7ec74;--lm-d:#dac34b}
+:root[data-board="blue"]{--sq-l:#dee3e6;--sq-d:#8ca2ad;--lm-l:#cfe39a;--lm-d:#9ab96a}
+:root[data-board="slate"]{--sq-l:#dcdcd6;--sq-d:#8a8f8a;--lm-l:#eeea92;--lm-d:#bdb962}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{padding-left:var(--nav-w)}
+body{margin:0;color:var(--ink);font:15px/1.45 var(--font);-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+button:disabled{cursor:not-allowed;opacity:.42}
+:focus-visible{outline:2px solid var(--green-h);outline-offset:2px}
+[hidden]{display:none!important}
+
+/* buttons */
+.btn{border:0;border-radius:6px;background:var(--raise);padding:9px 12px;font-weight:700;font-size:14px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.28);display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.btn:hover:not(:disabled){background:var(--raise-h)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn.go{background:var(--green);color:#fff;box-shadow:inset 0 -4px 0 var(--green-sh);text-shadow:0 1px 0 rgba(0,0,0,.2)}
+.btn.go:hover:not(:disabled){background:var(--green-h)}
+.btn.big{font-size:20px;font-weight:800;padding:14px 16px;border-radius:8px}
+.btn.ghost{background:transparent;box-shadow:none;color:var(--ink-2)}
+.btn.ghost:hover:not(:disabled){background:var(--raise)}
+.btn svg{width:18px;height:18px;flex:none}
+.lab{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.lab small{font-size:12px;letter-spacing:0;text-transform:none;font-weight:600}
+.note{font-size:13px;color:var(--muted);margin:0}
+.fine{font-size:12px;color:var(--faint);margin:0;line-height:1.55}
+.fine a{color:var(--muted)}
+
+@media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} }

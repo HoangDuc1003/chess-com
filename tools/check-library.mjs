@@ -1,7 +1,9 @@
 // Replays every opening library line and reports the deepest named opening it reaches.
 // Usage: node tools/check-library.mjs
 import fs from 'fs';
-import { setOpeningsData, sanLine, deepestName, opening, LIBRARY, guideFor } from '../app/openings.js';
+import { setOpeningsData, sanLine, deepestName, opening } from '../app/content/openings.js';
+import { guideFor } from '../app/content/opening-guides.js';
+import { LIBRARY } from '../app/content/opening-library.js';
 setOpeningsData(JSON.parse(fs.readFileSync(new URL('../data/openings.json', import.meta.url))));
 let bad = 0;
 for (const L of LIBRARY) {

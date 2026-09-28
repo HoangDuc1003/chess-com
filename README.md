@@ -163,18 +163,41 @@ Ratings under 1320 are estimates. From 1320 up they use Stockfish's engine Elo s
 
 ```
 chess-com/
-├── index.html                  # App shell: menu, board, side panel, dialogs
+├── index.html                  # App shell: icon sprite, menu, board, side panel, dialogs
 ├── app/
-│   ├── main.js                 # Game flow, engine scheduling, clocks, premoves, UI
-│   ├── board.js                # Board: drag & drop, premoves, arrows, highlights, animation
-│   ├── engine.js               # Stockfish in a Web Worker (multi-thread / single / asm.js)
-│   ├── review.js               # Move classification, accuracy, coach explanations
-│   ├── bots.js                 # Bot roster and human-like move picking
-│   ├── openings.js             # Opening lookup, Vietnamese guides, 60-line library
-│   ├── puzzles.js              # Puzzle selection and puzzle rating
-│   ├── lessons.js              # Mistake dictionary (25 lessons)
-│   ├── sound.js                # Synthesized board sounds (Web Audio, no audio files)
-│   └── style.css, pieces.css   # Dark theme, responsive layouts, piece set
+│   ├── main.js                 # Entry point: restore the saved game, bind the UI, start Stockfish
+│   ├── core/                   # Shared foundation
+│   │   ├── config.js           #   Modes, time controls, board themes, page titles
+│   │   ├── state.js            #   The single app state object and read-only selectors
+│   │   ├── storage.js          #   Save / restore game and preferences (localStorage)
+│   │   └── util.js             #   Small DOM and chess helpers
+│   ├── game/                   # Game rules and flow
+│   │   ├── game.js             #   Moves, results, new game, takeback, resign, hints
+│   │   ├── clock.js            #   Chess clocks, increments, time-outs
+│   │   ├── puzzle.js           #   Puzzle mode on the main board
+│   │   └── bots.js             #   Bot roster and human-like move picking
+│   ├── analysis/               # Everything Stockfish
+│   │   ├── engine.js           #   Web Worker controller (multi-thread / single / asm.js) and job queue
+│   │   ├── scheduler.js        #   What the engine does next: reviews, live analysis, bot moves, premoves
+│   │   └── review.js           #   Move classification, accuracy, coach explanations
+│   ├── content/                # Learning content and data access
+│   │   ├── openings.js         #   Opening lookups by position
+│   │   ├── opening-guides.js   #   100+ Vietnamese opening guides
+│   │   ├── opening-library.js  #   60-line opening library
+│   │   ├── puzzles.js          #   Puzzle selection and puzzle rating
+│   │   ├── lessons.js          #   Mistake dictionary (25 lessons)
+│   │   └── hash.js             #   Position hashing for the opening data
+│   ├── ui/                     # Rendering and input
+│   │   ├── board.js            #   Board: drag & drop, premoves, arrows, highlights, animation
+│   │   ├── main-board.js       #   What is drawn on the main board
+│   │   ├── render.js           #   Player bars, eval bar, footer, tabs, game summary
+│   │   ├── play-pane.js        #   Coach, hint, accuracy, opening card, move list
+│   │   ├── panes.js            #   Openings, dictionary, puzzles, opponents & settings
+│   │   ├── sim.js              #   Mini board that replays a line with captions
+│   │   ├── menu.js, dialogs.js #   Main menu / drawer, stats and help dialogs
+│   │   ├── controls.js         #   Clicks, keyboard shortcuts, mouse wheel
+│   │   └── sound.js, pwa.js    #   Synthesized sounds & haptics, offline install
+│   └── styles/                 # base, layout, board, panes, menu, dialogs, pieces (.css)
 ├── data/                       # openings.json, puzzles.json (compact lichess data)
 ├── engine/                     # Stockfish 17.1 builds (WASM single / multi-thread, asm.js)
 ├── lib/chess.js                # Rules and move generation
@@ -233,7 +256,7 @@ node tools/check-library.mjs    # replays every opening-library line
 ### 4. Deploy to Vercel
 
 1. Import the `chess-com` repository **once** at https://vercel.com/new (Framework Preset: **Other**, no build command).
-2. Name the project `chess-bot-com`. Every push to `main` redeploys automatically.
+2. Name the project `chess-training-com`. Every push to `main` redeploys automatically.
 
 `vercel.json` already sets the isolation headers for multi-threading and long-term caching for the engine and fonts.
 

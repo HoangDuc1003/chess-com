@@ -1,8 +1,16 @@
-// Small synthesized board sounds (no audio files). Audio starts only after a user gesture.
+// Small synthesized board sounds (no audio files) and haptic feedback. Audio starts only after a user gesture.
 let ctx = null;
 let enabled = true;
+let haptics = true;
 
 export function setSound(on) { enabled = on; }
+export function setHaptics(on) { haptics = on; }
+
+/* Vibrate on phones that support it (captures, mistakes). */
+export function buzz(pattern) {
+  if (!haptics || !navigator.vibrate) return;
+  try { navigator.vibrate(pattern); } catch {}
+}
 export function unlockAudio() {
   if (ctx) { if (ctx.state === 'suspended') ctx.resume().catch(() => {}); return; }
   try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch { ctx = null; }
@@ -33,7 +41,7 @@ function tone(t, freq, dur, gain = 0.08, type = 'sine') {
   o.start(t); o.stop(t + dur + 0.02);
 }
 
-export function play(kind) {
+export function sfx(kind) {
   if (!enabled || !ctx || ctx.state !== 'running') return;
   const t = ctx.currentTime + 0.005;
   switch (kind) {

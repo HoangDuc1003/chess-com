@@ -1,0 +1,47 @@
+/* The chessboard: squares, pieces, highlights, premoves, arrows, badges, drag ghost, promotion picker. */
+/* board */
+.cb{position:relative;width:100%;height:100%;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}
+.cb-sq{position:absolute;inset:0;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);border-radius:4px;overflow:hidden}
+.cb .s{position:relative}
+.cb .s.l{background:var(--sq-l)}
+.cb .s.d{background:var(--sq-d)}
+.cb .s.lm.l,.cb .s.sel.l{background:var(--lm-l)}
+.cb .s.lm.d,.cb .s.sel.d{background:var(--lm-d)}
+.cb .s.chk{background-image:radial-gradient(circle,rgba(255,40,30,.95) 0%,rgba(255,40,30,.6) 36%,rgba(255,40,30,0) 72%)}
+.cb .s.hov{box-shadow:inset 0 0 0 4px rgba(255,255,255,.7)}
+.cb .s .mk{position:absolute;inset:0;z-index:1}
+.cb .s.tgt::after{content:"";position:absolute;left:34%;top:34%;width:32%;height:32%;border-radius:50%;background:rgba(0,0,0,.16);z-index:3;pointer-events:none}
+.cb .s.tgt.cap::after{left:0;top:0;width:100%;height:100%;background:radial-gradient(circle,transparent 59%,rgba(0,0,0,.16) 61%)}
+.cb .co{position:absolute;z-index:1;font-weight:700;font-size:clamp(8px,1.5vw,13px);line-height:1;pointer-events:none}
+.cb .co.r{top:4%;left:4%}
+.cb .co.f{bottom:3%;right:5%}
+.cb .s.l .co{color:var(--sq-d)}
+.cb .s.d .co{color:var(--sq-l)}
+.cb .pc{position:absolute;inset:0;background-size:100% 100%;z-index:2}
+.cb .pc.lift{opacity:0}
+.cb .pc.my{cursor:grab}
+html.cb-grabbing,html.cb-grabbing *{cursor:grabbing!important}
+.cb .s.pm::before{content:"";position:absolute;inset:0;background:rgba(222,70,55,.58);z-index:1;pointer-events:none}
+.cb-arrows{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none}
+.cb-badge{--bw:5.6%;position:absolute;width:var(--bw);aspect-ratio:1;z-index:5;pointer-events:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));animation:pop .25s cubic-bezier(.2,1.4,.4,1)}
+.cb-badge svg{width:100%;height:100%;display:block}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+.cb-ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:80;background-size:100% 100%;will-change:transform;filter:drop-shadow(0 4px 6px rgba(0,0,0,.35))}
+.cb-promo{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.45);border-radius:4px}
+.cb-promo-col{position:absolute;width:12.5%;display:grid;background:#f1f0ee;border-radius:4px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+.cb-promo-col button{aspect-ratio:1;border:0;background-color:transparent;background-size:86% 86%;background-position:center;background-repeat:no-repeat}
+.cb-promo-col button:hover{background-color:#d8d6d2}
+.cb-promo-col .x{aspect-ratio:auto;height:28px;color:#555;font-weight:800;background:#e3e1dd}
+.mini .cb .co{font-size:9px}
+.toast{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:25;background:rgba(20,19,17,.88);color:#fff;font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;pointer-events:none;white-space:nowrap}
+
+/* phones and tablets, portrait */
+@media (max-width:979px) and (min-height:561px), (max-width:599px){
+  .cb .co{font-size:9px}
+  .cb-badge{--bw:7%}
+}
+
+/* phones, landscape */
+@media (orientation:landscape) and (max-height:560px){
+  .cb .co{font-size:8px}
+}

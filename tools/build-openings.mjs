@@ -1,7 +1,7 @@
 import fs from 'fs';
 // Usage: node tools/build-openings.mjs path/to/chess-openings   (clone of github.com/lichess-org/chess-openings)
 import { Chess } from '../lib/chess.js';
-import { keyOf } from '../app/hash.js';
+import { keyOf } from '../app/content/hash.js';
 const SRC = process.argv[2] || '../chess-openings';
 const OUT = new URL('../data/openings.json', import.meta.url);
 const rows = [];

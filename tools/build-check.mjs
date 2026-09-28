@@ -1,7 +1,7 @@
 // Replays every dictionary line with chess.js and checks the final position with Stockfish.
 // Usage: node tools/build-check.mjs
 import { Chess } from '../lib/chess.js';
-import { LESSONS } from '../app/lessons.js';
+import { LESSONS } from '../app/content/lessons.js';
 import { spawn } from 'child_process';
 const sf = spawn(process.execPath, [new URL('../engine/stockfish.js', import.meta.url).pathname]);
 let buf = '', waiters = [];
